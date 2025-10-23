@@ -1,35 +1,16 @@
-
-
 ;;; Beolvasni a current mode snippetjeit, mikor belépünk
-
 ;; 1. Get current mode
 ;; (message "%s" major-mode)
 
 ;; 2. Read JSON from this locaiton into var
-
 (setq json-object-type 'alist) ;; To set type default is alist
+(setq json-array-type 'list) ;; Default is vector e.g [Hello there my name is]
 
-;; (message "%s" (json-read-file "~/Projects/emacsPackages/snipEngine/test.json"))
 (setq test-snippets (json-read-file "~/Projects/emacsPackages/snipEngine/test.json"))
-
 ;; (message "%s" test-snippets)
 
 (setq inputString "st")
-
-;; Loop over list
-(let (result)
-  (dolist (current-alist test-snippets result)
-	 (setq result (string-equal inputString (cdr (assoc 'prefix current-alist))) ;; assoc kell alist-get el nem megy
-			)
-	;; (message "Alist: %s" (string-equal inputString (cdr (assoc 'prefix current-alist))) ;; assoc kell alist-get el nem megy
-			 ;; )
-	)
-  )
-(message "%s" result)
-
-;; (setq c-snippets (json-read-file "~/Projects/emacsPackages/snipEngine/friendly-snippets/snippets/c/c.json"))
-
-;; Function amikor szeretnénk hogy expand legyen
+(setq c-snippets (json-read-file "~/Projects/emacsPackages/snipEngine/friendly-snippets/snippets/c/c.json"))
 
 ;; 3. Lecserélni a szót a snippetre
 ;; Search by prefix value
@@ -39,4 +20,23 @@
 ;; Gagyi megoldás:
 ;; Get prefix name from completion.
 ;; Linear search, get object names and check for a prefix match
-;; Get the then get the body and expand
+;; Get the body and expand
+
+;; Loop over list
+(setq result
+	  (cl-dolist (current-alist c-snippets)
+
+		(when (string-equal inputString (cdr (assoc 'prefix current-alist))) ;; assoc kell alist-get el nem megy
+		  (cl-return current-alist))
+		)
+	  )
+
+;; (message "%s" result)
+;; (message "%s" (assoc 'body result))
+
+(setq snippet (cdr (assoc 'body result)))
+
+(dolist (current-line snippet)
+  ;; (message "%s" current-line)
+  (insert (format "%s\n" current-line))
+)
