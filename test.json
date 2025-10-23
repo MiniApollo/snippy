@@ -1,7 +1,26 @@
 {
-	"hello": "World",
-	"more": "123",
-	"asd": {
-		"data": "las"
+	"asd1": {
+		"prefix": "st",
+        "body": [
+			"test",
+			"Még több test"
+        ],
+        "description": "asd 1 test"
+	},
+	"asd2": {
+		"prefix": "hello",
+        "body": [
+			"Szia",
+			"Hello",
+			"Hey"
+        ],
+        "description": "asd 2 test"
+	},
+	"asd3": {
+		"prefix": "yolo",
+        "body": [
+			"Csak is a yours"
+        ],
+        "description": "asd 3 test"
 	}
 }
