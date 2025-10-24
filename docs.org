@@ -1,0 +1,44 @@
+#+Title: Hogyan működik
+#+AUTHOR: MiniApollo5935
+#+Startup: showeverything
+#+Options: toc:2
+
+
+* Tartalom jegyzék :toc:
+- [[#részei][Részei]]
+- [[#teljes-működése][Teljes működése]]
+- [[#snippet-beolvasása][Snippet beolvasása]]
+- [[#snippet-keresése][Snippet keresése]]
+- [[#snippet-expand][Snippet expand]]
+
+* Részei
+Három rész
+- Snippetek beolvasása
+- Snippet kikeresése
+- Snippet expand
+
+
+* Teljes működése
+- Main entry snippet Expand
+- Megkapunk egy input string-et
+- Kikeressük a current mode-ot
+- Megkapjuk a json path
+- Read json file
+- Megkeresni a prefix-et
+- Lementeni a body-t
+- Insert Végigmenni soronként a body-n
+- + cursor jump
+
+
+* Snippet beolvasása
+1. Megkapni a mostani módot amit remap ami a friendlyben van
+2. Megkapni a path
+3. Beolvasni
+
+* Snippet keresése
+Végig menni és megkeresni a prefix alapján melyik egyezik
+Lementeni a body részt
+
+* Snippet expand
+végig menni soronként a string listán és rakni mindegyik végén egy \n
+Meg majd még cursor jumps
