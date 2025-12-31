@@ -14,7 +14,6 @@
 
 (setq packageJson (json-read-file package-json-location))
 (setq snipPackage (assoc 'snippets (assoc 'contributes packageJson)))
-
 (dolist (current-alist snipPackage)
   (when (string-equal "rust" (car (assoc 'language current-alist)))
 		(setq snippetPaths (append snippetPaths current-alist)) ;; Nem jó megoldás
@@ -23,13 +22,15 @@
 (message snippetPaths)
 
 
-(defun elsnip/read-snippet (jsonPath)
+
+
+(defun readSnippet (jsonPath)
   "Read in JSON file by filetype"
   (setq snippetsFile (json-read-file jsonPath))
   )
 
 ;; Loop over list
-(defun elsnip/search-for-snippet (inputString snippetsFile)
+(defun searchForSnippet (inputString snippetsFile)
   "Search for input string"
   (setq result
 		(cl-dolist (current-alist snippetsFile)
@@ -40,7 +41,7 @@
   )
 
 ;; TODO: Cursor jump
-(defun elsnip/insert-snippet (snippet)
+(defun insertSnippet (snippet)
   "Insert snippet at cursor point"
   (dolist (current-line snippet)
 	;; (message "%s" current-line)
@@ -53,7 +54,7 @@
 ;; Search for snippet
 ;; InsertSnippet
 
-(defun elsnip/snip-expand (inputString)
+(defun snipExpand (inputString)
   "Main entry point"
   (interactive "sString: ")
   (progn
