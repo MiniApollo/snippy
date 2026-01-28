@@ -89,50 +89,47 @@
             snippy/current-language-path))
   "A merged alist of all snippets found in the paths defined by snippy/current-language-path.")
 
-(message "%s" snippy/merged-snippets)
+;; (message "%s" snippy/merged-snippets)
 
 ;; Search for snippet
 (require 'seq)
-(setq-local snippy/prefix-to-search "st")
 
 (defun snippy/find-snippet-by-prefix (prefix snippets)
   "Return the first snippet entry where the prefix matches PREFIX."
+  ;; Or seq-filter
   (seq-find (lambda (snippet)
               (let ((snippet-data (cdr snippet))) ; Get the (prefix . "...") part
                 (string= (cdr (assoc 'prefix snippet-data)) prefix)))
             snippets))
 
-;; Usage:
-(defun snippy/expand-at-point ()
-  "Search for the snippet prefix defined in `snippy/prefix-to-search`,
-insert its body, and jump to the $0 marker."
-  (interactive)
-  (let* ((match (seq-find (lambda (snippet)
-                            (string= (cdr (assoc 'prefix (cdr snippet)))
-                                     snippy/prefix-to-search))
-                          snippy/merged-snippets))
-         (raw-body (cdr (assoc 'body (cdr match)))))
 
-    (if (not match)
-        (message "No snippet found for prefix: %s" snippy/prefix-to-search)
+;; Snippet expansion
+;; More AI Slop :D
+;; The Main function
+(defun snippy/expand-snippet (prefix)
+  (interactive "sEnter snippet name: ")
+  ;(message "%s" (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
+  (my/expand-snippet-at-point (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
+)
 
-      ;; Process body: Join if it's a vector, otherwise keep as string
-      (let* ((body-str (if (vectorp raw-body)
-                           (mapconcat #'identity raw-body "\n")
-                         raw-body))
-             (start (point))
-             ;; Find position of $0 or ${0}
-             (marker-pos (string-match "\\$[0{}]" body-str)))
+(defun my/expand-snippet-at-point (snippet-alist)
+  "Expands the snippet exactly where the cursor is currently located."
+  (interactive) ; This allows you to call it via M-x
+  (let* ((body-data (cdr (assoc 'body snippet-alist)))
+         ;; Extract string from vector or use as-is
+         (body-str (if (vectorp body-data) (aref body-data 0) body-data)))
 
-        ;; 1. Insert body with markers stripped
-        (insert (replace-regexp-in-string "\\$[0{}]" "" body-str))
+    ;; 1. Logic processing (Placeholders/Choices)
+    (setq body-str (replace-regexp-in-string
+                    "\\${[0-9]+|\\([^|]+\\)|}" "[Choice: \\1]" body-str))
+    (setq body-str (replace-regexp-in-string
+                    "\\${[0-9]+:\\([^}]+\\)}" "[\\1]" body-str))
+    (setq body-str (replace-regexp-in-string
+                    "\\$\\([1-9]+\\)" "|\\1|" body-str))
+    (setq body-str (replace-regexp-in-string
+                    "\\$0" "|End|" body-str))
 
-        ;; 2. Jump cursor to the marker position if it existed
-        (when marker-pos
-          (goto-char (+ start marker-pos)))
-
-        (message "Snippet '%s' inserted." (car match))))))
-
-;; --- To Run ---
-(setq-local snippy/prefix-to-search "st")
-(snippy/expand-at-point)
+    ;; 2. The Insertion
+    ;; 'push-mark' allows you to jump back to where you started with C-u C-SPC
+    (push-mark)
+    (insert body-str)))
