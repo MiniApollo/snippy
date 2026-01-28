@@ -50,18 +50,29 @@
 (setq-local snippy/snippets-paths (alist-get 'snippets (alist-get 'contributes snippy/package-json-content)))
 (message "%s" snippy/snippets-paths)
 
-(defun get-path-by-language (my-snippet-data target-lang)
-  "Find the path for TARGET-LANG within the snippet vector."
-  (let ((found-path nil))
-    ;; seq-doseq handles both [vector] and (list)
-    (seq-doseq (entry my-snippet-data)
-      (let ((langs (cdr (assoc 'language entry)))
-            (path (cdr (assoc 'path entry))))
-        ;; Check if target-lang exists in the inner vector
-        (when (seq-contains-p langs target-lang)
-          (setq found-path path))))
-    found-path))
+;; (defvar my-snippet-data
+;;   [((language . ["plaintext" "markdown" "tex" "html" "global" "all"]) (path . "./snippets/global.json"))
+;;    ((language . ["license"]) (path . "./snippets/license.json"))
+;;    ((language . ["c"]) (path . "./snippets/c/c.json"))
+;;    ((language . ["cdoc"]) (path . "./snippets/c/cdoc.json"))
+;;    ((language . ["cpp"]) (path . "./snippets/cpp/cpp.json"))
+;;    ((language . ["c"]) (path . "./snippets/extra-c-stuff.json"))] ;; Example of a duplicate
+;;   "The snippet data structure as a vector of alists.")
 
-;; --- Test Cases ---
- (message "%s" (get-path-by-language snippy/snippets-paths "markdown")) ;-> "./snippets/global.json"
- (message "%s" (get-path-by-language snippy/snippets-paths "c"))
+(defun get-all-paths-by-language (my-snippet-data target-lang)
+  "Return a list of all paths associated with TARGET-LANG."
+  (let* ((lang-str (if (symbolp target-lang) (symbol-name target-lang) target-lang))
+         ;; 1. Filter the vector for all matching entries
+         (matches (seq-filter
+                   (lambda (entry)
+                     (seq-contains-p (cdr (assoc 'language entry)) lang-str))
+                   my-snippet-data)))
+    ;; 2. Extract only the 'path' from those entries and return as a list
+    (seq-map (lambda (entry) (cdr (assoc 'path entry))) matches)))
+
+;; --- Usage ---
+(message "%s" (get-all-paths-by-language snippy/snippets-paths "c"))
+;; => ("./snippets/c/c.json" "./snippets/extra-c-stuff.json")
+
+(message "%s" (get-all-paths-by-language snippy/snippets-paths "markdown"))
+;; => ("./snippets/global.json")
