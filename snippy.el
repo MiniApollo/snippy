@@ -48,21 +48,20 @@
 ;; Read in by language
 ;; Snippets
 (setq-local snippy/snippets-paths (alist-get 'snippets (alist-get 'contributes snippy/package-json-content)))
-;(message "%s" snippy/snippets-paths)
+(message "%s" snippy/snippets-paths)
 
-(defun snippy/find-snippet-path (snippets-paths target-lang)
-  (let ((lang (alist-get 'language (aref snippets-paths 0))))
-    ;; You can now use 'lang' inside this block
-    (message "The first language is: %s" lang))
-  )
+(defun get-path-by-language (my-snippet-data target-lang)
+  "Find the path for TARGET-LANG within the snippet vector."
+  (let ((found-path nil))
+    ;; seq-doseq handles both [vector] and (list)
+    (seq-doseq (entry my-snippet-data)
+      (let ((langs (cdr (assoc 'language entry)))
+            (path (cdr (assoc 'path entry))))
+        ;; Check if target-lang exists in the inner vector
+        (when (seq-contains-p langs target-lang)
+          (setq found-path path))))
+    found-path))
 
-;; (defun snippy/find-snippet-path (collection target-lang)
-;;   (let ((found (seq-find (lambda (item)
-;;                            (let ((langs (cdr (assoc 'language item))))
-;;                              (if (vectorp langs)
-;;                                  (seq-contains-p langs target-lang)
-;;                                (eq langs target-lang))))
-;;                          collection)))
-;;     (cdr (assoc 'path found))))
-
-(message "%s" (snippy/find-snippet-path snippy/snippets-paths 'c))
+;; --- Test Cases ---
+ (message "%s" (get-path-by-language snippy/snippets-paths "markdown")) ;-> "./snippets/global.json"
+ (message "%s" (get-path-by-language snippy/snippets-paths "c"))
