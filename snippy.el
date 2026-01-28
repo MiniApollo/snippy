@@ -15,7 +15,7 @@
 ;; Only set vars for this package not change it globally
 
 ;;(setq-local json-object-type 'alist) ;; To set type default is alist
-(setq-local json-array-type 'list) ;; Default is vector e.g [Hello there my name is]
+;(setq-local json-array-type 'list) ;; Default is vector e.g [Hello there my name is]
 
 (defvar snippy/package-json-location "./friendly-snippets/package.json" "Location of the package.json file")
 (defvar snippy/package-json-content (json-read-file snippy/package-json-location))
@@ -48,7 +48,7 @@
 ;; Read in by language
 ;; Snippets
 (setq-local snippy/snippets-paths (alist-get 'snippets (alist-get 'contributes snippy/package-json-content)))
-(message "%s" snippy/snippets-paths)
+;(message "%s" snippy/snippets-paths)
 
 ;; Get language paths
 ;; AI slop warning
@@ -72,6 +72,32 @@
 ;(message "Result for C: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "cpp"))
 ;(message "Result for Markdown: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "rust"))
 
-;(setq-local snippy/current-language-path (snippy/get-all-paths-by-language snippy/snippets-paths))
+(setq-local snippy/current-language "c")
+(setq-local snippy/current-language-path (snippy/get-all-paths-by-language snippy/snippets-paths snippy/current-language))
+;(message "%s" snippy/current-language-path)
 
 ;; Read in snippets
+;; Assuming snippy/current-language-path is defined elsewhere as a list of strings
+
+(defvar snippy/merged-snippets
+  (let ((base-dir "./friendly-snippets/"))
+    (mapcan (lambda (suffix)
+              (let ((full-path (concat base-dir suffix)))
+                (if (file-exists-p full-path)
+                    (json-read-file full-path)
+                  (ignore (message "Skipping: %s (not found)" full-path)))))
+            snippy/current-language-path))
+  "A merged alist of all snippets found in the paths defined by snippy/current-language-path.")
+
+(message "%s" snippy/merged-snippets)
+
+;; Search for snippet
+(require 'seq)
+(setq-local snippy/prefix-to-search "st")
+
+(defun snippy/find-snippet-by-prefix (prefix snippets)
+  "Return the first snippet entry where the prefix matches PREFIX."
+  (seq-find (lambda (snippet)
+              (let ((snippet-data (cdr snippet))) ; Get the (prefix . "...") part
+                (string= (cdr (assoc 'prefix snippet-data)) prefix)))
+            snippets))
