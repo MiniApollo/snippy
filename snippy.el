@@ -50,29 +50,28 @@
 (setq-local snippy/snippets-paths (alist-get 'snippets (alist-get 'contributes snippy/package-json-content)))
 (message "%s" snippy/snippets-paths)
 
-;; (defvar my-snippet-data
-;;   [((language . ["plaintext" "markdown" "tex" "html" "global" "all"]) (path . "./snippets/global.json"))
-;;    ((language . ["license"]) (path . "./snippets/license.json"))
-;;    ((language . ["c"]) (path . "./snippets/c/c.json"))
-;;    ((language . ["cdoc"]) (path . "./snippets/c/cdoc.json"))
-;;    ((language . ["cpp"]) (path . "./snippets/cpp/cpp.json"))
-;;    ((language . ["c"]) (path . "./snippets/extra-c-stuff.json"))] ;; Example of a duplicate
-;;   "The snippet data structure as a vector of alists.")
-
-(defun get-all-paths-by-language (my-snippet-data target-lang)
+;; Get language paths
+;; AI slop warning
+;; But it works
+(defun snippy/get-all-paths-by-language (my-snippet-data target-lang)
   "Return a list of all paths associated with TARGET-LANG."
-  (let* ((lang-str (if (symbolp target-lang) (symbol-name target-lang) target-lang))
-         ;; 1. Filter the vector for all matching entries
-         (matches (seq-filter
-                   (lambda (entry)
-                     (seq-contains-p (cdr (assoc 'language entry)) lang-str))
-                   my-snippet-data)))
-    ;; 2. Extract only the 'path' from those entries and return as a list
-    (seq-map (lambda (entry) (cdr (assoc 'path entry))) matches)))
+  (let ((target (if (symbolp target-lang) (symbol-name target-lang) target-lang)))
+    (seq-map
+     (lambda (entry) (cdr (assoc 'path entry)))
+     (seq-filter
+      (lambda (entry)
+        (let ((val (cdr (assoc 'language entry))))
+          (if (vectorp val)
+              ;; If vector, convert elements to strings and check
+              (seq-some (lambda (x) (string-equal (format "%s" x) target)) val)
+            ;; If single value, format as string and compare
+            (string-equal (format "%s" val) target))))
+      my-snippet-data))))
 
-;; --- Usage ---
-(message "%s" (get-all-paths-by-language snippy/snippets-paths "c"))
-;; => ("./snippets/c/c.json" "./snippets/extra-c-stuff.json")
+; Test writeout
+;(message "Result for C: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "cpp"))
+;(message "Result for Markdown: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "rust"))
 
-(message "%s" (get-all-paths-by-language snippy/snippets-paths "markdown"))
-;; => ("./snippets/global.json")
+;(setq-local snippy/current-language-path (snippy/get-all-paths-by-language snippy/snippets-paths))
+
+;; Read in snippets
