@@ -101,3 +101,38 @@
               (let ((snippet-data (cdr snippet))) ; Get the (prefix . "...") part
                 (string= (cdr (assoc 'prefix snippet-data)) prefix)))
             snippets))
+
+;; Usage:
+(defun snippy/expand-at-point ()
+  "Search for the snippet prefix defined in `snippy/prefix-to-search`,
+insert its body, and jump to the $0 marker."
+  (interactive)
+  (let* ((match (seq-find (lambda (snippet)
+                            (string= (cdr (assoc 'prefix (cdr snippet)))
+                                     snippy/prefix-to-search))
+                          snippy/merged-snippets))
+         (raw-body (cdr (assoc 'body (cdr match)))))
+
+    (if (not match)
+        (message "No snippet found for prefix: %s" snippy/prefix-to-search)
+
+      ;; Process body: Join if it's a vector, otherwise keep as string
+      (let* ((body-str (if (vectorp raw-body)
+                           (mapconcat #'identity raw-body "\n")
+                         raw-body))
+             (start (point))
+             ;; Find position of $0 or ${0}
+             (marker-pos (string-match "\\$[0{}]" body-str)))
+
+        ;; 1. Insert body with markers stripped
+        (insert (replace-regexp-in-string "\\$[0{}]" "" body-str))
+
+        ;; 2. Jump cursor to the marker position if it existed
+        (when marker-pos
+          (goto-char (+ start marker-pos)))
+
+        (message "Snippet '%s' inserted." (car match))))))
+
+;; --- To Run ---
+(setq-local snippy/prefix-to-search "st")
+(snippy/expand-at-point)
