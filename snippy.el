@@ -108,28 +108,107 @@
 ;; The Main function
 (defun snippy/expand-snippet (prefix)
   (interactive "sEnter snippet name: ")
-  ;(message "%s" (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
   (my/expand-snippet-at-point (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
+  (message "%s" (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
 )
 
+;; (defun my/expand-snippet-at-point (snippet-alist)
+;;   "Expands the snippet exactly where the cursor is currently located."
+;;   (interactive) ; This allows you to call it via M-x
+;;   (let* ((body-data (cdr (assoc 'body snippet-alist)))
+;;          ;; Extract string from vector or use as-is
+;;          (body-str (if (vectorp body-data) (aref body-data 0) body-data)))
+
+;;     ;; 1. Logic processing (Placeholders/Choices)
+;;     (setq body-str (replace-regexp-in-string
+;;                     "\\${[0-9]+|\\([^|]+\\)|}" "[Choice: \\1]" body-str))
+;;     (setq body-str (replace-regexp-in-string
+;;                     "\\${[0-9]+:\\([^}]+\\)}" "[\\1]" body-str))
+;;     (setq body-str (replace-regexp-in-string
+;;                     "\\$\\([1-9]+\\)" "|\\1|" body-str))
+;;     (setq body-str (replace-regexp-in-string
+;;                     "\\$0" "|End|" body-str))
+
+;;     ;; 2. The Insertion
+;;     ;; 'push-mark' allows you to jump back to where you started with C-u C-SPC
+;;     (push-mark)
+;;     (insert body-str)))
+
+;; THIRD SLOP
+(defvar-local my/snippet-overlays nil "List of all overlays in the current snippet.")
+(defvar-local my/snippet-index 0 "Current tabstop index.")
+
+(defun my/sync-tabstops (ov after start end &optional pre-len)
+  "Synchronize text from the current overlay to all others with the same tabstop ID."
+  ;; 'after' is true if the hook is running after the text change
+  (when after
+    (let ((inhibit-modification-hooks t) ;; Prevent infinite recursion
+          (text (buffer-substring-no-properties (overlay-start ov) (overlay-end ov)))
+          (id (overlay-get ov 'tabstop)))
+      (save-excursion
+        (dolist (other my/snippet-overlays)
+          ;; Find mirrors: same tabstop ID, but not the overlay we are currently typing in
+          (when (and (eq (overlay-get other 'tabstop) id)
+                     (not (eq other ov)))
+            (goto-char (overlay-start other))
+            (delete-region (overlay-start other) (overlay-end other))
+            (insert text)))))))
+
 (defun my/expand-snippet-at-point (snippet-alist)
-  "Expands the snippet exactly where the cursor is currently located."
-  (interactive) ; This allows you to call it via M-x
+  "Expands multi-line snippets with linked variables and jumping."
+  (interactive)
   (let* ((body-data (cdr (assoc 'body snippet-alist)))
-         ;; Extract string from vector or use as-is
-         (body-str (if (vectorp body-data) (aref body-data 0) body-data)))
+         (body-str (if (vectorp body-data) (mapconcat #'identity body-data "\n") body-data))
+         (all-ovs nil))
 
-    ;; 1. Logic processing (Placeholders/Choices)
-    (setq body-str (replace-regexp-in-string
-                    "\\${[0-9]+|\\([^|]+\\)|}" "[Choice: \\1]" body-str))
-    (setq body-str (replace-regexp-in-string
-                    "\\${[0-9]+:\\([^}]+\\)}" "[\\1]" body-str))
-    (setq body-str (replace-regexp-in-string
-                    "\\$\\([1-9]+\\)" "|\\1|" body-str))
-    (setq body-str (replace-regexp-in-string
-                    "\\$0" "|End|" body-str))
+    ;; 1. Cleanup old session
+    (mapc #'delete-overlay my/snippet-overlays)
 
-    ;; 2. The Insertion
-    ;; 'push-mark' allows you to jump back to where you started with C-u C-SPC
-    (push-mark)
-    (insert body-str)))
+    ;; 2. Handle Choices (Interactively)
+    (while (string-match "\\${[0-9]+|\\([^|]+\\)|}" body-str)
+      (let* ((options (split-string (match-string 1 body-str) ","))
+             (choice (completing-read "Choice: " options)))
+        (setq body-str (replace-match choice t t body-str))))
+
+    ;; 3. Insert and Create Overlays
+    (let ((start (point)))
+      (insert body-str)
+      (save-excursion
+        (goto-char start)
+        (while (re-search-forward "\\$\\([0-9]+\\)\\|\\${\\([0-9]+\\):\\([^}]+\\)}" (+ start (length body-str)) t)
+          (let* ((num (string-to-number (or (match-string 1) (match-string 2))))
+                 (val (or (match-string 3) ""))
+                 (ov (make-overlay (match-beginning 0) (match-end 0))))
+            (replace-match val t t)
+            (move-overlay ov (match-beginning 0) (match-end 0))
+            (overlay-put ov 'tabstop num)
+            ;; IMPORTANT: Attach the sync hook to every instance
+            (overlay-put ov 'modification-hooks '(my/sync-tabstops))
+            (overlay-put ov 'face '(:background "gray25" :underline t))
+            (push ov all-ovs))))
+
+      ;; 4. Set up the navigation list
+      ;; We only want to JUMP to the first occurrence of each number
+      (setq my/snippet-overlays (nreverse all-ovs))
+      (setq my/snippet-index 0)
+      (my/snippet-jump 0))))
+
+(defun my/snippet-jump (n)
+  "Jump to the Nth unique tabstop."
+  ;; Get a list of unique tabstop numbers in order
+  (let* ((nums (delete-dups (mapcar (lambda (o) (overlay-get o 'tabstop)) my/snippet-overlays)))
+         ;; Sort numbers: 1, 2, 3... and 0 is always last
+         (sorted-nums (sort nums (lambda (a b) (cond ((zerop a) nil) ((zerop b) t) (t (< a b))))))
+         (target-id (nth n sorted-nums)))
+
+    (if (or (not target-id) (< n 0))
+        (progn
+          (message "Snippet finished.")
+          (mapc #'delete-overlay my/snippet-overlays)
+          (setq my/snippet-overlays nil))
+      (let ((target-ov (seq-find (lambda (o) (eq (overlay-get o 'tabstop) target-id)) my/snippet-overlays)))
+        (goto-char (overlay-start target-ov))
+        (message "Editing $ %d (M-n / M-p)" target-id)))))
+
+(defun my/snippet-next () (interactive) (setq my/snippet-index (1+ my/snippet-index)) (my/snippet-jump my/snippet-index))
+(defun my/snippet-prev () (interactive) (setq my/snippet-index (1- my/snippet-index)) (my/snippet-jump my/snippet-index))
