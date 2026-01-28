@@ -13,7 +13,6 @@
 
 ;; TODO:
 ;; Only set vars for this package not change it globally
-
 ;;(setq-local json-object-type 'alist) ;; To set type default is alist
 ;(setq-local json-array-type 'list) ;; Default is vector e.g [Hello there my name is]
 
@@ -72,7 +71,7 @@
 ;(message "Result for C: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "cpp"))
 ;(message "Result for Markdown: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "rust"))
 
-(setq-local snippy/current-language "c")
+(setq-local snippy/current-language "css")
 (setq-local snippy/current-language-path (snippy/get-all-paths-by-language snippy/snippets-paths snippy/current-language))
 ;(message "%s" snippy/current-language-path)
 
@@ -112,90 +111,7 @@
   (message "%s" (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
 )
 
-;; GODA SLOP
-;; (defvar-local my/snippet-overlays nil "List of all overlays in the current snippet.")
-;; (defvar-local my/snippet-index 0 "Current tabstop index.")
-
-;; (defun my/sync-tabstops (ov after start end &optional pre-len)
-;;   "Synchronize text from the current overlay to all others with the same tabstop ID."
-;;   ;; 'after' is true if the hook is running after the text change
-;;   (when after
-;;     (let ((inhibit-modification-hooks t) ;; Prevent infinite recursion
-;;           (text (buffer-substring-no-properties (overlay-start ov) (overlay-end ov)))
-;;           (id (overlay-get ov 'tabstop)))
-;;       (save-excursion
-;;         (dolist (other my/snippet-overlays)
-;;           ;; Find mirrors: same tabstop ID, but not the overlay we are currently typing in
-;;           (when (and (eq (overlay-get other 'tabstop) id)
-;;                      (not (eq other ov)))
-;;             (goto-char (overlay-start other))
-;;             (delete-region (overlay-start other) (overlay-end other))
-;;             (insert text)))))))
-
-;; (defun my/expand-snippet-at-point (snippet-alist)
-;;   "Expands multi-line snippets with linked variables and jumping."
-;;   (interactive)
-;;   (let* ((body-data (cdr (assoc 'body snippet-alist)))
-;;          (body-str (if (vectorp body-data) (mapconcat #'identity body-data "\n") body-data))
-;;          (all-ovs nil))
-
-;;     ;; 1. Cleanup old session
-;;     (mapc #'delete-overlay my/snippet-overlays)
-
-;;     ;; 2. Handle Choices (Interactively)
-;;     (while (string-match "\\${[0-9]+|\\([^|]+\\)|}" body-str)
-;;       (let* ((options (split-string (match-string 1 body-str) ","))
-;;              (choice (completing-read "Choice: " options)))
-;;         (setq body-str (replace-match choice t t body-str))))
-
-;;     ;; 3. Insert and Create Overlays
-;;     (let ((start (point)))
-;;       (insert body-str)
-;;       (save-excursion
-;;         (goto-char start)
-;;         (while (re-search-forward "\\$\\([0-9]+\\)\\|\\${\\([0-9]+\\):\\([^}]+\\)}" (+ start (length body-str)) t)
-;;           (let* ((num (string-to-number (or (match-string 1) (match-string 2))))
-;;                  (val (or (match-string 3) ""))
-;;                  (ov (make-overlay (match-beginning 0) (match-end 0))))
-;;             (replace-match val t t)
-;;             (move-overlay ov (match-beginning 0) (match-end 0))
-;;             (overlay-put ov 'tabstop num)
-;;             ;; IMPORTANT: Attach the sync hook to every instance
-;;             (overlay-put ov 'modification-hooks '(my/sync-tabstops))
-;;             (overlay-put ov 'face '(:background "gray25" :underline t))
-;;             (push ov all-ovs))))
-
-;;       ;; 4. Set up the navigation list
-;;       ;; We only want to JUMP to the first occurrence of each number
-;;       (setq my/snippet-overlays (nreverse all-ovs))
-;;       (setq my/snippet-index 0)
-;;       (my/snippet-jump 0))))
-
-;; (defun my/snippet-jump (n)
-;;   "Jump to the Nth unique tabstop."
-;;   ;; Get a list of unique tabstop numbers in order
-;;   (let* ((nums (delete-dups (mapcar (lambda (o) (overlay-get o 'tabstop)) my/snippet-overlays)))
-;;          ;; Sort numbers: 1, 2, 3... and 0 is always last
-;;          (sorted-nums (sort nums (lambda (a b) (cond ((zerop a) nil) ((zerop b) t) (t (< a b))))))
-;;          (target-id (nth n sorted-nums)))
-
-;;     (if (or (not target-id) (< n 0))
-;;         (progn
-;;           (message "Snippet finished.")
-;;           (mapc #'delete-overlay my/snippet-overlays)
-;;           (setq my/snippet-overlays nil))
-;;       (let ((target-ov (seq-find (lambda (o) (eq (overlay-get o 'tabstop) target-id)) my/snippet-overlays)))
-;;         (goto-char (overlay-start target-ov))
-;;         (message "Editing $ %d (M-n / M-p)" target-id)))))
-
-;; (defun my/snippet-next () (interactive) (setq my/snippet-index (1+ my/snippet-index)) (my/snippet-jump my/snippet-index))
-;; (defun my/snippet-prev () (interactive) (setq my/snippet-index (1- my/snippet-index)) (my/snippet-jump my/snippet-index))
-
-
-
-
-
-;; SECOND SLOP
+;; SOMEWHAT WORKING SLOP
 (defvar-local my/snippet-overlays nil)
 (defvar-local my/snippet-index 0)
 
@@ -225,11 +141,15 @@ managing boundaries."
 
     (mapc #'delete-overlay my/snippet-overlays)
 
-    ;; 1. Handle Choices
-    (while (string-match "\\${[0-9]+|\\([^|]+\\)|}" body-str)
-      (let ((choice (completing-read "Choice: " (split-string (match-string 1 body-str) ","))))
-        (setq body-str (replace-match choice t t body-str))))
-
+    ;; 1. Handle Choices (Interactively and globally for the string)
+    (while (string-match "\\${\\([0-9]+\\)|\\([^|]+\\)|}" body-str)
+      (let* ((id (match-string 1 body-str))
+             (options (split-string (match-string 2 body-str) ","))
+             (choice (completing-read (format "Choice for $%s: " id) options)))
+        ;; Update EVERY instance of $id, ${id:default}, or ${id|choices|} in the string
+        (setq body-str (replace-regexp-in-string
+                        (format "\\$\\(%s\\)\\|\\${\\(%s\\)[:|][^}]+}" id id)
+                        choice body-str))))
     ;; 2. Insertion
     (let ((start (point)))
       (insert body-str)
@@ -271,3 +191,4 @@ managing boundaries."
 
 (defun my/snippet-next () (interactive) (setq my/snippet-index (1+ my/snippet-index)) (my/snippet-jump my/snippet-index))
 (defun my/snippet-prev () (interactive) (setq my/snippet-index (1- my/snippet-index)) (my/snippet-jump my/snippet-index))
+
