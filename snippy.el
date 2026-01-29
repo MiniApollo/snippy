@@ -266,7 +266,8 @@
             snippets))
 
 ;; Expand Snippet
-(defun snippy-expand-snippet-by-prefix (prefix)
+(defun snippy-expand (prefix)
+  "Expand snippet by prefix"
   (interactive "sEnter snippet name: ")
   (unless (featurep 'yasnippet)
     (user-error "Yasnippet is not loaded. Please install or require it first"))
