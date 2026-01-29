@@ -12,7 +12,6 @@
 ;;; Code:
 
 ;; TODO
-;; Variables
 ;; Major mode loading
 ;; Clean up for release
 
@@ -21,16 +20,13 @@
 ;; Placeholder-Transform
 ;; Grammar
 
+(defvar snippy/snippet-dir "./friendly-snippets/" "Snippets directory")
+(defvar snippy/package-json-content (json-read-file (format "%spackage.json" snippy/snippet-dir)))
 
-;; Only set vars for this package not change it globally
-;;(setq-local json-object-type 'alist) ;; To set type default is alist
-;(setq-local json-array-type 'list) ;; Default is vector e.g [Hello there my name is]
-
-(defvar snippy/package-json-location "./friendly-snippets/package.json" "Location of the package.json file")
-(defvar snippy/package-json-content (json-read-file snippy/package-json-location))
+(defvar snippy/minimal-engine-vscode-version "1.11.0"
+  "The minimum version required for this package.")
 
 ;; Vscode engine check
-
 (defun snippy/clean-version-string (version)
   "Remove common semver prefixes like ^ or ~ from VERSION string."
   (if (and (stringp version) (string-match "\\([0-9.]+\\)" version))
@@ -43,20 +39,16 @@
 (defvar snippy/engine-vscode-version (snippy/get-engine-vscode-version)
   "Current Engine vscode version")
 
-(defvar snippy/minimal-engine-vscode-version "1.11.0"
-  "The minimum version required for this package.")
-
 (defun snippy/check-engine-version()
   (if (version<= snippy/minimal-engine-vscode-version snippy/engine-vscode-version)
       (message "Okey %s" snippy/engine-vscode-version)
-    (message "Bady %s" snippy/engine-vscode-version))
-  )
+    (message "Bady %s" snippy/engine-vscode-version)))
 
-;(snippy/check-engine-version)
+(snippy/check-engine-version)
 
 ;; Read in by language
 ;; Snippets
-(setq-local snippy/snippets-paths (alist-get 'snippets (alist-get 'contributes snippy/package-json-content)))
+(defvar snippy/snippets-paths (alist-get 'snippets (alist-get 'contributes snippy/package-json-content)))
 ;(message "%s" snippy/snippets-paths)
 
 ;; Get language paths
@@ -81,21 +73,20 @@
 ;(message "Result for C: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "cpp"))
 ;(message "Result for Markdown: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "rust"))
 
-(setq-local snippy/current-language "css")
-(setq-local snippy/current-language-path (snippy/get-all-paths-by-language snippy/snippets-paths snippy/current-language))
+(defvar snippy/current-language "markdown"
+  "The language currently used by snippy in the local buffer.")
+
+(defvar snippy/current-language-path (snippy/get-all-paths-by-language snippy/snippets-paths snippy/current-language))
 ;(message "%s" snippy/current-language-path)
 
 ;; Read in snippets
-;; Assuming snippy/current-language-path is defined elsewhere as a list of strings
-
 (defvar snippy/merged-snippets
-  (let ((base-dir "./friendly-snippets/"))
-    (mapcan (lambda (suffix)
-              (let ((full-path (concat base-dir suffix)))
-                (if (file-exists-p full-path)
-                    (json-read-file full-path)
-                  (ignore (message "Skipping: %s (not found)" full-path)))))
-            snippy/current-language-path))
+  (mapcan (lambda (suffix)
+            (let ((full-path (concat snippy/snippet-dir suffix)))
+              (if (file-exists-p full-path)
+                  (json-read-file full-path)
+                (ignore (message "Skipping: %s (not found)" full-path)))))
+          snippy/current-language-path)
   "A merged alist of all snippets found in the paths defined by snippy/current-language-path.")
 
 ;; (message "%s" snippy/merged-snippets)
@@ -203,4 +194,3 @@
            body-choices t t)))
 
     (yas-expand-snippet final-body)))
-
