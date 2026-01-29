@@ -186,7 +186,7 @@
              (save-match-data  ;; <--- Essential to protect the outer match
                (let* ((index (match-string 1 match))
                       (choice-str (match-string 2 match))
-                      (choices (split-string choice-str "," t "[ \t\n\r]+"))
+                      (choices (split-string choice-str ","))
                       (lisp-list (format "'(%s)"
                                          (mapconcat #'prin1-to-string choices " "))))
                  (format "${%s:$$(yas-choose-value %s)}" index lisp-list))))
