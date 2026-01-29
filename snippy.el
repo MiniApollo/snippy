@@ -50,7 +50,7 @@
         (match-string 1 version)
       version)))
 
-(defun snippy/check-engine-version()
+(defun snippy-check-engine-version()
   (let* ((current-engine-version
           (snippy-clean-version (alist-get 'vscode (alist-get 'engines snippy-package-json-content)))))
     (cond
@@ -64,12 +64,12 @@
     ))
 
 (snippy--get-package-data)
-(snippy/check-engine-version)
+(snippy-check-engine-version)
 
 ;; Read in by language
 ;; Snippets
-(defvar snippy/snippets-paths (alist-get 'snippets (alist-get 'contributes snippy-package-json-content)))
-;(message "%s" snippy/snippets-paths)
+(defvar snippy-snippets-paths (alist-get 'snippets (alist-get 'contributes snippy-package-json-content)))
+;(message "%s" snippy-snippets-paths)
 
 ;; Get language paths
 ;; AI slop warning
@@ -90,13 +90,13 @@
       my-snippet-data))))
 
 ; Test writeout
-;(message "Result for C: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "cpp"))
-;(message "Result for Markdown: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "rust"))
+;(message "Result for C: %s" (snippy/get-all-paths-by-language snippy-snippets-paths "cpp"))
+;(message "Result for Markdown: %s" (snippy/get-all-paths-by-language snippy-snippets-paths "rust"))
 
 (defvar snippy/current-language "markdown"
   "The language currently used by snippy in the local buffer.")
 
-(defvar snippy/current-language-path (snippy/get-all-paths-by-language snippy/snippets-paths snippy/current-language))
+(defvar snippy/current-language-path (snippy/get-all-paths-by-language snippy-snippets-paths snippy/current-language))
 ;(message "%s" snippy/current-language-path)
 
 ;; Read in snippets
