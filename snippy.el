@@ -330,7 +330,19 @@
          (body-str (cond ((vectorp body-raw) (mapconcat #'identity body-raw "\n"))
                          ((stringp body-raw) body-raw)
                          (t "")))
-         ;; Choices
+         ;; Remove duplicate placeholders.
+         ;; Yasnippet don't likes duplicates
+         (body-no-dups
+          (let ((seen-ids '()))
+            (replace-regexp-in-string
+             "\\${\\([0-9]+\\):[^}]+}"
+             (lambda (match)
+               (let ((id (match-string 1 match)))
+                 (if (member id seen-ids)
+                     (concat "$" id)     ; It's a duplicate, return just $N
+                   (push id seen-ids)    ; First time seeing this ID
+                   match)))              ; Keep the original ${N:default}
+             body-str t t)))         ;; Choices
          ;; Convert ${1|a,b|} to ${1:$$(yas-choose-value '("a" "b"))}
          (body-choices
           (replace-regexp-in-string
@@ -343,7 +355,7 @@
                       (lisp-list (format "'(%s)"
                                          (mapconcat #'prin1-to-string choices " "))))
                  (format "${%s:$$(yas-choose-value %s)}" index lisp-list))))
-           body-str t t))
+           body-no-dups t t))
          ;; Variables
          (final-body
           (replace-regexp-in-string
