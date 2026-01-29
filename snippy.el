@@ -20,6 +20,9 @@
 ;; Placeholder-Transform
 ;; Grammar
 
+(require 'seq)
+(require 'yasnippet)
+
 (defgroup snippy nil
   "Custom snippet management utilities."
   :group 'editing)
@@ -184,6 +187,7 @@
 ;;  (snippy-check-engine-version)
 ;; (message "%s" (snippy--get-all-snippets-paths))
 
+;;;###autoload
 (define-minor-mode snippy-minor-mode
   "Minor mode for managing snippets via package.json."
   :group 'snippy
@@ -250,7 +254,6 @@
 ;; (message "%s" snippy--merged-snippets)
 
 ;; Search for snippet
-(require 'seq)
 (defun snippy--find-snippet-by-prefix (prefix snippets)
   "Return the first snippet entry where the prefix matches PREFIX."
   (seq-find (lambda (snippet)
@@ -276,8 +279,6 @@
     (yas-minor-mode t))
   ;; (message "%s" (snippy--find-snippet-by-prefix prefix snippy--merged-snippets))
   (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix snippy--merged-snippets)))
-
-(require 'yasnippet)
 
 (defun snippy--get-variable-value (var-name)
   "Resolves VS Code variables to their Emacs string values."
@@ -353,3 +354,6 @@
            body-choices t t)))
 
     (yas-expand-snippet final-body)))
+
+(provide 'snippy)
+;;; snippy.el ends here
