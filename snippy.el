@@ -20,35 +20,54 @@
 ;; Placeholder-Transform
 ;; Grammar
 
-(defvar snippy/snippet-dir "./friendly-snippets/" "Snippets directory")
-(defvar snippy/package-json-content (json-read-file (format "%spackage.json" snippy/snippet-dir)))
+(defgroup snippy nil
+  "Custom snippet management utilities."
+  :group 'editing)
 
-(defvar snippy/minimal-engine-vscode-version "1.11.0"
-  "The minimum version required for this package.")
+(defcustom snippy-snippet-dir (expand-file-name "./friendly-snippets/")
+  "Directory containing the snippets and package.json."
+  :type 'directory
+  :group 'snippy)
+
+(defconst snippy-min-vscode-version "1.11.0"
+  "The minimum VSCode engine version required.")
+
+(defun snippy--get-package-data ()
+  "Read and parse the package.json file."
+  (let ((file (expand-file-name "package.json" snippy-snippet-dir)))
+    (if (file-exists-p file)
+        (json-read-file file)
+      (error "Could not find package.json in %s" snippy-snippet-dir))))
+
+(defvar snippy-package-json-content (snippy--get-package-data)
+  "Package json file content")
 
 ;; Vscode engine check
-(defun snippy/clean-version-string (version)
-  "Remove common semver prefixes like ^ or ~ from VERSION string."
-  (if (and (stringp version) (string-match "\\([0-9.]+\\)" version))
-      (match-string 1 version)
-    version))
-
-(defun snippy/get-engine-vscode-version ()
-  (snippy/clean-version-string (alist-get 'vscode (alist-get 'engines snippy/package-json-content))))
-
-(defvar snippy/engine-vscode-version (snippy/get-engine-vscode-version)
-  "Current Engine vscode version")
+(defun snippy-clean-version (version)
+  "Extract a clean semver string from VERSION, removing ^ or ~."
+  (when (stringp version)
+    (if (string-match "\\([0-9.]+\\)" version)
+        (match-string 1 version)
+      version)))
 
 (defun snippy/check-engine-version()
-  (if (version<= snippy/minimal-engine-vscode-version snippy/engine-vscode-version)
-      (message "Okey %s" snippy/engine-vscode-version)
-    (message "Bady %s" snippy/engine-vscode-version)))
+  (let* ((current-engine-version
+          (snippy-clean-version (alist-get 'vscode (alist-get 'engines snippy-package-json-content)))))
+    (cond
+     ((null current-engine-version)
+      (message "Snippy: Could not determine VSCode version from package.json."))
+     ((version<= snippy-min-vscode-version current-engine-version)
+      (message "Snippy: Version check passed %s" current-engine-version))
+     (t
+      (warn "Snippy: VSCode version %s is below requirement %s"
+            current-engine-version snippy-min-vscode-version)))
+    ))
 
 (snippy/check-engine-version)
 
 ;; Read in by language
 ;; Snippets
-(defvar snippy/snippets-paths (alist-get 'snippets (alist-get 'contributes snippy/package-json-content)))
+(defvar snippy/snippets-paths (alist-get 'snippets (alist-get 'contributes snippy-package-json-content)))
 ;(message "%s" snippy/snippets-paths)
 
 ;; Get language paths
@@ -82,7 +101,7 @@
 ;; Read in snippets
 (defvar snippy/merged-snippets
   (mapcan (lambda (suffix)
-            (let ((full-path (concat snippy/snippet-dir suffix)))
+            (let ((full-path (concat snippy-snippet-dir suffix)))
               (if (file-exists-p full-path)
                   (json-read-file full-path)
                 (ignore (message "Skipping: %s (not found)" full-path)))))
