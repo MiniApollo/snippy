@@ -71,7 +71,7 @@
 ;(message "Result for C: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "cpp"))
 ;(message "Result for Markdown: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "rust"))
 
-(setq-local snippy/current-language "css")
+(setq-local snippy/current-language "c")
 (setq-local snippy/current-language-path (snippy/get-all-paths-by-language snippy/snippets-paths snippy/current-language))
 ;(message "%s" snippy/current-language-path)
 
@@ -102,6 +102,10 @@
             snippets))
 
 
+;; TODO:
+;; Built in var support
+;; Fix variable update on default chars
+
 ;; Snippet expansion
 ;; More AI Slop :D
 ;; The Main function
@@ -115,22 +119,26 @@
 (defvar-local my/snippet-overlays nil)
 (defvar-local my/snippet-index 0)
 
-(defun my/sync-tabstops (ov after start end &optional pre-len)
-  "Synchronizes mirrors. Fixes the 'multiplication' bug by precisely
-managing boundaries."
+(defun my/sync-tabstops (ov after beg end &optional _len)
+  "Synchronize all overlays sharing the same tabstop ID with OV."
+  ;; Only run after the change and if not undoing
   (when (and after (not undo-in-progress))
-    (let ((inhibit-modification-hooks t)
-          (text (buffer-substring-no-properties (overlay-start ov) (overlay-end ov)))
-          (id (overlay-get ov 'tabstop)))
+    (let* ((id (overlay-get ov 'tabstop))
+           (inhibit-modification-hooks t)
+           (text (buffer-substring-no-properties (overlay-start ov) (overlay-end ov))))
       (save-excursion
-        (dolist (mirror my/snippet-overlays)
-          (when (and (eq (overlay-get mirror 'tabstop) id)
-                     (not (eq mirror ov)))
-            (goto-char (overlay-start mirror))
-            (delete-region (overlay-start mirror) (overlay-end mirror))
-            (insert text)
-            ;; Force the mirror overlay to stay exactly on top of the new text
-            (move-overlay mirror (- (point) (length text)) (point))))))))
+        (save-match-data
+          (dolist (mirror my/snippet-overlays)
+            (let ((m-beg (overlay-start mirror))
+                  (m-end (overlay-end mirror)))
+              ;; Sync if IDs match and it's not the overlay currently being edited
+              (when (and (eq (overlay-get mirror 'tabstop) id)
+                         (not (eq mirror ov)))
+                (goto-char m-beg)
+                (delete-region m-beg m-end)
+                (insert text)
+                ;; Update mirror bounds to match new text length
+                (move-overlay mirror m-beg (point))))))))))
 
 (defun my/expand-snippet-at-point (snippet-alist)
   "Expands snippet and links mirrors."
@@ -151,44 +159,58 @@ managing boundaries."
                         (format "\\$\\(%s\\)\\|\\${\\(%s\\)[:|][^}]+}" id id)
                         choice body-str))))
     ;; 2. Insertion
-    (let ((start (point)))
+    (let ((start (point))
+          (all-ovs nil))
       (insert body-str)
       (save-excursion
         (goto-char start)
-        (while (re-search-forward "\\$\\([0-9]+\\)\\|\\${\\([0-9]+\\):\\([^}]+\\)}" (+ start (length body-str)) t)
-          (let* ((num (string-to-number (or (match-string 1) (match-string 2))))
-                 (val (or (match-string 3) ""))
-                 (ov (make-overlay (match-beginning 0) (match-end 0))))
-            (replace-match val t t)
-            (move-overlay ov (match-beginning 0) (match-end 0))
-            (overlay-put ov 'tabstop num)
-            (overlay-put ov 'modification-hooks '(my/sync-tabstops))
-            ;; Visual markers
-            (overlay-put ov 'face '(:background "#333" :underline t))
-            (push ov all-ovs))))
+        ;; Limit the search to the end of the inserted string
+        (let ((limit (point-max))) ; Or use (+ start (length body-str)) if text after could match
+          (while (re-search-forward "\\$\\([0-9]+\\)\\|\\${\\([0-9]+\\):\\([^}]+\\)}" limit t)
+            (let* ((num (string-to-number (or (match-string 1) (match-string 2))))
+                   (val (or (match-string 3) ""))
+                   (beg (match-beginning 0)))
+              ;; 1. Replace the placeholder with the default value first
+              (replace-match val t t)
+              ;; 2. Create the overlay on the *new* text bounds
+              (let ((ov (make-overlay beg (point))))
+                (overlay-put ov 'tabstop num)
+                (overlay-put ov 'modification-hooks '(my/sync-tabstops))
+                (overlay-put ov 'face '(:background "#333" :underline t))
+                (push ov all-ovs))))))
 
-      (setq my/snippet-overlays (nreverse all-ovs))
-      (setq my/snippet-index 0)
+      ;; Update state and initialize
+      (setq my/snippet-overlays (nreverse all-ovs)
+            my/snippet-index 0)
       (my/snippet-jump 0))))
 
 (defun my/snippet-jump (n)
-  "Jumps to tabstop and SELECTS placeholder text."
-  (let* ((nums (delete-dups (mapcar (lambda (o) (overlay-get o 'tabstop)) my/snippet-overlays)))
-         (sorted-nums (sort nums (lambda (a b) (cond ((zerop a) nil) ((zerop b) t) (t (< a b))))))
-         (target-id (nth n sorted-nums)))
+  "Jump to the Nth tabstop and select its placeholder text."
+  (interactive "p")
+  (let* ((tabstops (mapcar (lambda (ov) (overlay-get ov 'tabstop)) my/snippet-overlays))
+         ;; Sort: 1, 2, 3... and 0 always goes last
+         (unique-sorted (sort (delete-dups tabstops)
+                              (lambda (a b)
+                                (if (zerop a) nil (if (zerop b) t (< a b))))))
+         (target-id (nth n unique-sorted))
+         (target-ov (seq-find (lambda (ov) (eq (overlay-get ov 'tabstop) target-id))
+                              my/snippet-overlays)))
 
-    (if (or (not target-id) (< n 0))
-        (progn
-          (mapc #'delete-overlay my/snippet-overlays)
-          (setq my/snippet-overlays nil)
-          (message "Snippet finished."))
-      (let ((target-ov (seq-find (lambda (o) (eq (overlay-get o 'tabstop) target-id)) my/snippet-overlays)))
-        ;; FIX: Select the text so the user can just start typing to delete the default
-        (goto-char (overlay-start target-ov))
-        (push-mark (overlay-end target-ov) t t)
-        (activate-mark)
-        (message "Editing $ %d" target-id)))))
+    (cond
+     ;; Case 1: No more tabstops - Cleanup
+     ((or (not target-id) (< n 0))
+      (mapc #'delete-overlay my/snippet-overlays)
+      (setq my/snippet-overlays nil
+            my/snippet-index 0)
+      (message "Snippet finished."))
+
+     ;; Case 2: Jump and Select
+     (target-ov
+      (setq my/snippet-index n)
+      (goto-char (overlay-start target-ov))
+      (set-mark (overlay-end target-ov))
+      (activate-mark)
+      (message "Editing tabstop: %d" target-id)))))
 
 (defun my/snippet-next () (interactive) (setq my/snippet-index (1+ my/snippet-index)) (my/snippet-jump my/snippet-index))
 (defun my/snippet-prev () (interactive) (setq my/snippet-index (1- my/snippet-index)) (my/snippet-jump my/snippet-index))
-
