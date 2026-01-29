@@ -174,9 +174,9 @@
   "Convert LSP-style choices to YASnippet elisp and expand, handling strings or vectors."
   (let* ((body-raw (cdr (assoc 'body snippet)))
          ;; If it's a vector, join it. If it's already a string, use it.
-         (body-str (if (vectorp body-raw)
-                       (mapconcat #'identity (append body-raw nil) "\n")
-                     body-raw))
+         (body-str (cond ((vectorp body-raw) (mapconcat #'identity body-raw "\n"))
+                         ((stringp body-raw) body-raw)
+                         (t "")))
          ;; Choices
          ;; Convert ${1|a,b|} to ${1:$$(yas-choose-value '("a" "b"))}
          (body-choices
