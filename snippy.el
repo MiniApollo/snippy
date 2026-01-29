@@ -159,9 +159,11 @@
 ;; Expand Snippet
 (defun snippy-expand-snippet-by-prefix (prefix)
   (interactive "sEnter snippet name: ")
-  ;; (unless (featurep 'yasnippet)
-  ;;   (user-error "Yasnippet is required for this function"))
-  (message "%s" (snippy--find-snippet-by-prefix prefix snippy--merged-snippets))
+  (unless (featurep 'yasnippet)
+    (user-error "Yasnippet is not loaded. Please install or require it first"))
+  (unless (bound-and-true-p yas-minor-mode)
+    (yas-minor-mode t))
+  ;; (message "%s" (snippy--find-snippet-by-prefix prefix snippy--merged-snippets))
   (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix snippy--merged-snippets)))
 
 (require 'yasnippet)
