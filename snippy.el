@@ -32,15 +32,15 @@
 (defconst snippy-min-vscode-version "1.11.0"
   "The minimum VSCode engine version required.")
 
+(defvar snippy-package-json-content nil
+  "Package json file content")
+
 (defun snippy--get-package-data ()
   "Read and parse the package.json file."
   (let ((file (expand-file-name "package.json" snippy-snippet-dir)))
     (if (file-exists-p file)
-        (json-read-file file)
+        (setq snippy-package-json-content (json-read-file file))
       (error "Could not find package.json in %s" snippy-snippet-dir))))
-
-(defvar snippy-package-json-content (snippy--get-package-data)
-  "Package json file content")
 
 ;; Vscode engine check
 (defun snippy-clean-version (version)
@@ -63,6 +63,7 @@
             current-engine-version snippy-min-vscode-version)))
     ))
 
+(snippy--get-package-data)
 (snippy/check-engine-version)
 
 ;; Read in by language
