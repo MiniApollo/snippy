@@ -12,7 +12,8 @@
 ;;; Code:
 
 ;; TODO
-;; Major mode loading
+;; Not working in javscript mode for Placeholders not fully working
+;; Multi language support
 
 ;; Not very interesting
 ;; Variable-Transform
