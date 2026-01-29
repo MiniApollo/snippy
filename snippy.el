@@ -124,6 +124,8 @@
     (js-mode . "javascript")
     (js2-mode . "javascript")
     (js-ts-mode . "javascript")
+    (js-json-mode . "javascript")
+    (json-ts-mode . "javascript")
     (rjsx-mode . "javascriptreact")
     (typescript-mode . "typescript")
     (typescript-ts-mode . "typescript")
