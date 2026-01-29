@@ -176,12 +176,13 @@
     (error value)))
 
 (defun snippy--replace-variables (snippet)
-  "Resolves VS Code variables, supporting nesting and transformations."
+  "Resolves VS Code variables, ignoring numeric tabstops."
   (let ((result snippet)
         (case-fold-search nil))
 
     ;; 1. Handle Transformations: ${VAR/Regex/Format/Options}
-    (while (string-match "\\${\\([A-Z_]+\\)/\\([^/]+\\)/\\([^/]*\\)/\\([a-z]*\\)}" result)
+    ;; Ensure we only match VARs (letters), not numeric indices
+    (while (string-match "\\${\\([A-Z_][A-Z_0-9]*\\)/\\([^/]+\\)/\\([^/]*\\)/\\([a-z]*\\)}" result)
       (let* ((var-name (match-string 1 result))
              (regex (match-string 2 result))
              (fmt (match-string 3 result))
@@ -191,20 +192,20 @@
                       (if val (snippy--perform-transform val regex fmt opts) "")
                       t t result))))
 
-    ;; 2. Handle Variables with Defaults: ${VAR:default} or ${VAR}
-    ;; This regex ensures we only grab uppercase variables, leaving $1, $2 alone.
-    (while (string-match "\\${\\([A-Z_]+\\)\\(?::\\([^}]*\\)\\)?}" result)
+    ;; 2. Handle Variables with Defaults: ${VAR:default}
+    ;; The [A-Z_] start ensures we don't touch ${1:default}
+    (while (string-match "\\${\\([A-Z_][A-Z_0-9]*\\)\\(?::\\([^}]*\\)\\)?}" result)
       (let* ((var-name (match-string 1 result))
              (default-val (or (match-string 2 result) ""))
              (val (snippy--get-variable-value var-name)))
-        ;; If default-val itself contains a variable, resolve it recursively
         (when (string-match-p "\\$" default-val)
           (setq default-val (snippy--replace-variables default-val)))
         (setq result (replace-match (or val default-val) t t result))))
 
-    ;; 3. Handle Simple Variables: $VAR (only if not followed by numbers)
+    ;; 3. Handle Simple Variables: $VAR
+    ;; Use \\b (word boundary) to prevent matching $1 as part of a variable
     (let ((start 0))
-      (while (string-match "\\$\\([A-Z_]+\\)" result start)
+      (while (string-match "\\$\\([A-Z_][A-Z_0-9]*\\)\\b" result start)
         (let* ((var-name (match-string 1 result))
                (val (snippy--get-variable-value var-name)))
           (if val
@@ -213,31 +214,40 @@
     result))
 
 (defun snippy--convert-choices (snippet)
-  "Converts VS Code ${1|a,b|} to Yasnippet ${1:$$(yas-choose-value '(\"a\" \"b\"))}."
-  (let ((start 0))
-    (while (string-match "\\${\\([0-9]+\\)|\\([^|]+\\)|}" snippet start)
-      (let* ((index (match-string 1 snippet))
-             (choices-str (match-string 2 snippet))
-             ;; Split by comma, but could be extended to handle escaped commas if needed
-             (choices-list (split-string choices-str ","))
-             (elisp-list (concat "'(\"" (mapconcat #'identity choices-list "\" \"") "\")"))
-             (yas-node (format "${\%s:$$(yas-choose-value %s)}" index elisp-list)))
-        (setq snippet (replace-match yas-node t t snippet))
-        (setq start (match-end 0))))
-    snippet))
+  "Convert VS Code choices ${1|one,two|} to YASnippet format."
+  (let ((case-fold-search nil))
+    (replace-regexp-in-string
+     "\\${\\([0-9]+\\)|\\([^|]*\\)|}"
+     (lambda (match)
+       ;; IMPORTANT: Use 'snippet' here, not 'match'
+       (let* ((index (match-string 1 snippet))
+              (choice-str (match-string 2 snippet))
+              ;; Split the choices and clean up whitespace
+              (choices (split-string choice-str "," t "[ \t\n\r]+"))
+              (lisp-list (format "'(%s)"
+                                 (mapconcat #'prin1-to-string choices " "))))
+         (format "${%s:$$(yas-choose-value %s)}" index lisp-list)))
+     snippet t t)))
+
+;; Testing the fix:
+(let ((input "align-items: ${1|flex-start,flex-end,center|};"))
+  (insert (snippy--convert-choices input)))align-items: ${1|flex${i:$$(yas-choose-value '("n-items: ${1|flex-start" "fl"))}start,flex-end,center|};
 
 (defun my/expand-snippet-at-point (snippet-content)
-  "Expands a VS Code format SNIPPET-CONTENT at point using Yasnippet."
-  (interactive "sSnippet: ")
+  "Expands VS Code format SNIPPET-CONTENT at point with interactive choices."
   (unless (featurep 'yasnippet)
-    (user-error "Yasnippet is required for this function"))
+    (user-error "Yasnippet is required"))
 
-  (let ((processed-snippet snippet-content))
-    ;; 1. Resolve Global Variables (Dates, Filenames, etc)
-    (setq processed-snippet (snippy--replace-variables processed-snippet))
+  (let ((processed snippet-content))
+    ;; 1. Handle Vector body
+    (when (vectorp processed)
+      (setq processed (mapconcat #'identity processed "\n")))
 
-    ;; 2. Convert Choice Syntax (|one,two|) to Yasnippet Syntax
-    (setq processed-snippet (snippy--convert-choices processed-snippet))
+    ;; 2. Convert Choices FIRST
+    (setq processed (snippy--convert-choices processed))
 
-    ;; 3. Expand using Yasnippet
-    (yas-expand-snippet processed-snippet)))
+    ;; 3. Resolve Variables
+    (setq processed (snippy--replace-variables processed))
+
+    ;; 4. Expand
+    (yas-expand-snippet processed)))
