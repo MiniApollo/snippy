@@ -71,7 +71,7 @@
 ;(message "Result for C: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "cpp"))
 ;(message "Result for Markdown: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "rust"))
 
-(setq-local snippy/current-language "c")
+(setq-local snippy/current-language "css")
 (setq-local snippy/current-language-path (snippy/get-all-paths-by-language snippy/snippets-paths snippy/current-language))
 ;(message "%s" snippy/current-language-path)
 
@@ -110,174 +110,134 @@
 ;; More AI Slop :D
 ;; The Main function
 (defun snippy/expand-snippet (prefix)
+  "Finds a snippet by PREFIX and expands it, handling VS Code's body format."
   (interactive "sEnter snippet name: ")
-  (my/expand-snippet-at-point (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
-  (message "%s" (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
-)
+  (let* ((snippet-data (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
+         ;; Extract the 'body' from the alist
+         (body (cdr (assoc 'body snippet-data))))
+    (if body
+        (let ((body-str (if (vectorp body)
+                            (mapconcat #'identity body "\n")
+                          body)))
+          (my/expand-snippet-at-point body-str))
+      (message "Snippet '%s' not found" prefix))))
 
-;; SOMEWHAT WORKING SLOP
-(require 'cl-lib)
+(require 'yasnippet)
+(require 'subr-x)
 
-;; 1. Variables and Faces
-(defvar-local my/snippet-overlays nil)
-(defvar-local my/snippet-current-index 0)
+(defun snippy--get-variable-value (var-name)
+  "Resolves VS Code variables to their Emacs string values."
+  (let ((file-name (buffer-file-name)))
+    (pcase var-name
+      ("TM_SELECTED_TEXT" (if (use-region-p) (buffer-substring-no-properties (region-beginning) (region-end)) ""))
+      ("TM_CURRENT_LINE" (thing-at-point 'line t))
+      ("TM_CURRENT_WORD" (or (thing-at-point 'word t) ""))
+      ("TM_LINE_INDEX" (number-to-string (1- (line-number-at-pos))))
+      ("TM_LINE_NUMBER" (number-to-string (line-number-at-pos)))
+      ("TM_FILENAME" (if file-name (file-name-nondirectory file-name) "Untitled"))
+      ("TM_FILENAME_BASE" (if file-name (file-name-base file-name) "Untitled"))
+      ("TM_DIRECTORY" (if file-name (file-name-directory file-name) default-directory))
+      ("TM_DIRECTORY_BASE" (file-name-nondirectory (directory-file-name (if file-name (file-name-directory file-name) default-directory))))
+      ("TM_FILEPATH" (or file-name ""))
+      ("RELATIVE_FILEPATH" (if file-name (file-relative-name file-name) ""))
+      ("CLIPBOARD" (or (current-kill 0) ""))
+      ("WORKSPACE_NAME" (if (project-current) (file-name-nondirectory (directory-file-name (project-root (project-current)))) "No Workspace"))
+      ("WORKSPACE_FOLDER" (if (project-current) (project-root (project-current)) default-directory))
 
-;; Face for inactive fields
-(defface my/snippet-field-face
-  '((t :background "#444444" :underline nil))
-  "Face for snippet fields not currently being edited.")
+      ;; Dates
+      ("CURRENT_YEAR" (format-time-string "%Y"))
+      ("CURRENT_YEAR_SHORT" (format-time-string "%y"))
+      ("CURRENT_MONTH" (format-time-string "%m"))
+      ("CURRENT_MONTH_NAME" (format-time-string "%B"))
+      ("CURRENT_MONTH_NAME_SHORT" (format-time-string "%b"))
+      ("CURRENT_DATE" (format-time-string "%d"))
+      ("CURRENT_DAY_NAME" (format-time-string "%A"))
+      ("CURRENT_DAY_NAME_SHORT" (format-time-string "%a"))
+      ("CURRENT_HOUR" (format-time-string "%H"))
+      ("CURRENT_MINUTE" (format-time-string "%M"))
+      ("CURRENT_SECOND" (format-time-string "%S"))
+      ("CURRENT_SECONDS_UNIX" (format-time-string "%s"))
 
-;; Face for the currently active field
-(defface my/snippet-active-face
-  '((t :inherit region :underline t))
-  "Face for the active snippet field.")
+      ;; Randoms
+      ("RANDOM" (format "%06d" (random 1000000)))
+      ("RANDOM_HEX" (format "%06x" (random 16777215)))
+      ("UUID" (if (fboundp 'org-id-uuid) (org-id-uuid) (format "%06x%06x" (random 16777215) (random 16777215))))
 
-;; Keymap that is only active when a snippet is running
-(defvar my/snippet-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "TAB") #'my/snippet-next)
-    (define-key map (kbd "<tab>") #'my/snippet-next)
-    (define-key map (kbd "S-TAB") #'my/snippet-prev)
-    (define-key map (kbd "<backtab>") #'my/snippet-prev)
-    (define-key map (kbd "C-g") #'my/snippet-exit)
-    map))
+      ;; Fallback
+      (_ nil))))
 
-(define-minor-mode my/snippet-mode
-  "Minor mode active during snippet expansion."
-  :init-value nil
-  :lighter " Snip"
-  :keymap my/snippet-mode-map)
+(defun snippy--perform-transform (value regex format options)
+  "Applies a VSCode style transform to a value string."
+  ;; Note: Translating JS Regex to Emacs Regex perfectly is difficult.
+  ;; We assume standard regex compatibility for simple cases.
+  (condition-case nil
+      (let ((case-fold-search (string-match-p "i" options)))
+        (replace-regexp-in-string regex format value nil nil))
+    (error value)))
 
-;; 2. Mirror Synchronization
-(defun my/sync-tabstops (ov after beg end &optional _len)
-  "Synchronize all overlays sharing the same tabstop ID with OV."
-  (when (and after (not undo-in-progress))
-    (let* ((id (overlay-get ov 'tabstop))
-           (text (buffer-substring-no-properties (overlay-start ov) (overlay-end ov)))
-           (inhibit-modification-hooks t)) ;; Prevent infinite loops
+(defun snippy--replace-variables (snippet)
+  "Resolves VS Code variables, supporting nesting and transformations."
+  (let ((result snippet)
+        (case-fold-search nil))
 
-      ;; Group changes so one 'undo' reverts mirrors and source together
-      (atomic-change-group
-        (save-excursion
-          (dolist (mirror my/snippet-overlays)
-            (when (and (eq (overlay-get mirror 'tabstop) id)
-                       (not (eq mirror ov))) ;; Don't edit the source
-              (let ((m-beg (overlay-start mirror))
-                    (m-end (overlay-end mirror)))
-                (goto-char m-beg)
-                (delete-region m-beg m-end)
-                (insert text)
-                ;; Explicitly fix overlay bounds if insert moved them weirdly
-                (move-overlay mirror m-beg (point))))))))))
+    ;; 1. Handle Transformations: ${VAR/Regex/Format/Options}
+    (while (string-match "\\${\\([A-Z_]+\\)/\\([^/]+\\)/\\([^/]*\\)/\\([a-z]*\\)}" result)
+      (let* ((var-name (match-string 1 result))
+             (regex (match-string 2 result))
+             (fmt (match-string 3 result))
+             (opts (match-string 4 result))
+             (val (snippy--get-variable-value var-name)))
+        (setq result (replace-match
+                      (if val (snippy--perform-transform val regex fmt opts) "")
+                      t t result))))
 
-;; 3. Expansion Logic
-(defun my/expand-snippet-at-point (snippet-alist)
-  "Expands snippet, links mirrors, and activates snippet mode."
-  (interactive)
-  ;; Ensure delete-selection-mode is on so typing replaces text
-  (unless delete-selection-mode (delete-selection-mode 1))
+    ;; 2. Handle Variables with Defaults: ${VAR:default} or ${VAR}
+    ;; This regex ensures we only grab uppercase variables, leaving $1, $2 alone.
+    (while (string-match "\\${\\([A-Z_]+\\)\\(?::\\([^}]*\\)\\)?}" result)
+      (let* ((var-name (match-string 1 result))
+             (default-val (or (match-string 2 result) ""))
+             (val (snippy--get-variable-value var-name)))
+        ;; If default-val itself contains a variable, resolve it recursively
+        (when (string-match-p "\\$" default-val)
+          (setq default-val (snippy--replace-variables default-val)))
+        (setq result (replace-match (or val default-val) t t result))))
 
-  (let* ((body-data (cdr (assoc 'body snippet-alist)))
-         (body-str (if (vectorp body-data) (mapconcat #'identity body-data "\n") body-data))
-         (start (point))
-         (all-ovs nil))
+    ;; 3. Handle Simple Variables: $VAR (only if not followed by numbers)
+    (let ((start 0))
+      (while (string-match "\\$\\([A-Z_]+\\)" result start)
+        (let* ((var-name (match-string 1 result))
+               (val (snippy--get-variable-value var-name)))
+          (if val
+              (setq result (replace-match val t t result))
+            (setq start (match-end 0))))))
+    result))
 
-    ;; A. Handle Choices (Interactively resolve before insertion)
-    (while (string-match "\\${\\([0-9]+\\)|\\([^|]+\\)|}" body-str)
-      (let* ((id (match-string 1 body-str))
-             (options (split-string (match-string 2 body-str) ","))
-             (choice (completing-read (format "Choice for $%s: " id) options)))
-        (setq body-str (replace-regexp-in-string
-                        (format "\\$\\(%s\\)\\|\\${\\(%s\\)[:|][^}]+}" id id)
-                        choice body-str))))
+(defun snippy--convert-choices (snippet)
+  "Converts VS Code ${1|a,b|} to Yasnippet ${1:$$(yas-choose-value '(\"a\" \"b\"))}."
+  (let ((start 0))
+    (while (string-match "\\${\\([0-9]+\\)|\\([^|]+\\)|}" snippet start)
+      (let* ((index (match-string 1 snippet))
+             (choices-str (match-string 2 snippet))
+             ;; Split by comma, but could be extended to handle escaped commas if needed
+             (choices-list (split-string choices-str ","))
+             (elisp-list (concat "'(\"" (mapconcat #'identity choices-list "\" \"") "\")"))
+             (yas-node (format "${\%s:$$(yas-choose-value %s)}" index elisp-list)))
+        (setq snippet (replace-match yas-node t t snippet))
+        (setq start (match-end 0))))
+    snippet))
 
-    ;; B. Insert text
-    (insert body-str)
+(defun my/expand-snippet-at-point (snippet-content)
+  "Expands a VS Code format SNIPPET-CONTENT at point using Yasnippet."
+  (interactive "sSnippet: ")
+  (unless (featurep 'yasnippet)
+    (user-error "Yasnippet is required for this function"))
 
-    ;; C. Parse Tabstops and Create Overlays
-    (save-excursion
-      (goto-char start)
-      (let ((limit (point-max)))
-        ;; Regex handles $1 and ${1:default}
-        (while (re-search-forward "\\$\\([0-9]+\\)\\|\\${\\([0-9]+\\):\\([^}]*\\)}" limit t)
-          (let* ((num (string-to-number (or (match-string 1) (match-string 2))))
-                 (val (or (match-string 3) ""))
-                 (match-beg (match-beginning 0))
-                 (match-end (match-end 0)))
+  (let ((processed-snippet snippet-content))
+    ;; 1. Resolve Global Variables (Dates, Filenames, etc)
+    (setq processed-snippet (snippy--replace-variables processed-snippet))
 
-            ;; Replace placeholder with default value
-            (replace-match val t t)
+    ;; 2. Convert Choice Syntax (|one,two|) to Yasnippet Syntax
+    (setq processed-snippet (snippy--convert-choices processed-snippet))
 
-            ;; Create Overlay
-            ;; IMPORTANT: (point) is now after the inserted 'val'.
-            ;; Arg 4 (nil): Front-advance (false) - wait, actually...
-            ;; Arg 5 (t): Rear-advance (false)? No.
-            ;; We want (make-overlay BEG END BUFFER FRONT-ADVANCE REAR-ADVANCE)
-            ;; We set FRONT-ADVANCE to t. If we insert at the end of the field, it stays inside.
-            (let ((ov (make-overlay match-beg (point) nil nil t)))
-              (overlay-put ov 'tabstop num)
-              (overlay-put ov 'modification-hooks '(my/sync-tabstops))
-              (overlay-put ov 'face 'my/snippet-field-face)
-              ;; Priority ensures our face doesn't completely mask the region selection
-              (overlay-put ov 'priority 0)
-              (push ov all-ovs))))))
-
-    ;; D. Initialize State
-    (my/snippet-exit) ;; Clean up any previous snippets
-    (setq my/snippet-overlays (nreverse all-ovs)
-          my/snippet-current-index 0)
-    (my/snippet-mode 1) ;; Enable the keymap
-    (my/snippet-jump 0)))
-
-;; 4. Navigation
-(defun my/snippet-jump (n)
-  "Jump to the Nth tabstop."
-  (let* ((tabstops (mapcar (lambda (ov) (overlay-get ov 'tabstop)) my/snippet-overlays))
-         ;; Sort unique IDs: 1, 2, 3... and 0 is always last
-         (unique-ids (sort (delete-dups (copy-sequence tabstops))
-                           (lambda (a b)
-                             (if (zerop a) nil (if (zerop b) t (< a b))))))
-         (target-id (nth n unique-ids)))
-
-    (if (not target-id)
-        (my/snippet-exit) ;; No more stops? Exit.
-
-      ;; Update Index
-      (setq my/snippet-current-index n)
-
-      ;; Find the first overlay with this ID (primary field)
-      (let ((target-ov (seq-find (lambda (ov) (eq (overlay-get ov 'tabstop) target-id))
-                                 my/snippet-overlays)))
-        (when target-ov
-          ;; 1. Update faces: Make all inactive, then make target active
-          (dolist (ov my/snippet-overlays)
-            (overlay-put ov 'face 'my/snippet-field-face))
-          (dolist (ov my/snippet-overlays)
-            (when (eq (overlay-get ov 'tabstop) target-id)
-              (overlay-put ov 'face 'my/snippet-active-face)))
-
-          ;; 2. Move Point and Select
-          (goto-char (overlay-start target-ov))
-          (set-mark (overlay-end target-ov))
-          (activate-mark)
-
-          ;; Ensure the cursor is placed nicely if the field is empty
-          (when (= (overlay-start target-ov) (overlay-end target-ov))
-            (deactivate-mark)))))))
-
-(defun my/snippet-next ()
-  (interactive)
-  (my/snippet-jump (1+ my/snippet-current-index)))
-
-(defun my/snippet-prev ()
-  (interactive)
-  (my/snippet-jump (max 0 (1- my/snippet-current-index))))
-
-(defun my/snippet-exit ()
-  "Cleanup overlays and disable snippet mode."
-  (interactive)
-  (mapc #'delete-overlay my/snippet-overlays)
-  (setq my/snippet-overlays nil
-        my/snippet-current-index 0)
-  (my/snippet-mode -1)
-  (message "Snippet finished."))
+    ;; 3. Expand using Yasnippet
+    (yas-expand-snippet processed-snippet)))
