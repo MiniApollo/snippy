@@ -13,6 +13,8 @@
 - [[#snippet-expand][Snippet expand]]
   - [[#vscode][Vscode:]]
   - [[#cursor-jump-variables-and-choices][Cursor jump, variables and choices]]
+- [[#terv][Terv]]
+- [[#fav-snippets][Fav snippets]]
 
 * Why use this:
 Snippets are underdeveloped in Emacs:
@@ -87,4 +89,93 @@ pl.: css
         "body": "align-items: ${1|flex-start,flex-end,center,baseline,stretch,auto|};",
         "description": "initial value: auto"
     },
+#+end_src
+
+
+
+* Terv
+Read from package json location
+Get version
+#+begin_src javascript
+    "engines": {
+        "vscode": "^1.11.0"
+    },
+#+end_src
+
+The format
+#+begin_src js
+    "contributes": {
+        "snippets": [
+            {
+                "language": [
+                    "plaintext",
+                    "markdown",
+                    "tex",
+                    "html",
+                    "global",
+                    "all"
+                ],
+                "path": "./snippets/global.json"
+            },
+            {
+                "language": ["license"],
+                "path": "./snippets/license.json"
+            },
+#+end_src
+
+
+
+* Fav snippets
+Choices: css
+(align-items (prefix . ai) (body . align-items: ${1|flex-start,flex-end,center,baseline,stretch,start,end,self-start,self-end|};) (description . initial value: stretch))
+JSON:
+#+begin_src js
+    "align-items": {
+        "prefix": "ai",
+        "body": "align-items: ${1|flex-start,flex-end,center,baseline,stretch,start,end,self-start,self-end|};",
+        "description": "initial value: stretch"
+    },
+#+end_src
+most generic: c
+(for argv[] (prefix . fora) (body . [for (int ${1:i} = ${2:1}; $1 < argc; $1++) {$0 }]) (description . 'for' loop for cmdline arguments))
+JSON:
+#+begin_src js
+    "for argv[]": {
+        "prefix": "fora",
+        "body": ["for (int ${1:i} = ${2:1}; $1 < argc; $1++) {$0", "}"],
+        "description": "'for' loop for cmdline arguments"
+    },
+#+end_src
+
+Example multiple choices in yasnippet:
+https://pragmaticemacs.wordpress.com/2017/06/25/multiple-choices-in-yasnippets/
+# -*- mode: snippet -*-
+# name: align-items
+# key: ai
+# --
+Importance: ${1:$$(yas-choose-value '("high" "average" "below average"))}
+Difficulty: ${2:$$(yas-choose-value '("easy" "hard"))}
+$0
+
+#+begin_src emacs-lisp
+    (setq string "align-items: ${5|flex-start,flex-end,center,baseline,stretch,start,end,self-start,self-end|};")
+    (message "%s"
+             (replace-regexp-in-string "\\${[0-9]|\\([^|]*\\)|}" "hello" string))
+#+end_src
+
+WORKING
+#+begin_src emacs-lisp
+(message "%s"
+         (replace-regexp-in-string
+          "\\${\\([0-9]+\\)|\\([^|]+\\)|}"
+          (lambda (match)
+            (save-match-data  ;; <--- Essential to protect the outer match
+              (let* ((index (match-string 1 match))
+                     (choice-str (match-string 2 match))
+                     (choices (split-string choice-str "," t "[ \t\n\r]+"))
+                     (lisp-list (format "(quote (%s))"
+                                        (mapconcat #'prin1-to-string choices " "))))
+                (format "${%s:$$(yas-choose-value %s)}" index lisp-list))))
+          string
+          t t))
 #+end_src

@@ -71,7 +71,7 @@
 ;(message "Result for C: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "cpp"))
 ;(message "Result for Markdown: %s" (snippy/get-all-paths-by-language snippy/snippets-paths "rust"))
 
-(setq-local snippy/current-language "css")
+(setq-local snippy/current-language "c")
 (setq-local snippy/current-language-path (snippy/get-all-paths-by-language snippy/snippets-paths snippy/current-language))
 ;(message "%s" snippy/current-language-path)
 
@@ -103,28 +103,19 @@
 (defun snippy/expand-snippet-by-prefix (prefix)
   (interactive "sEnter snippet name: ")
   (message "%s" (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
-  (my/expand-alist-smart (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
+  (snippy/expand-snippet (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
   )
-
-(defun snippy/expand-snippet (snippet)
-  "Expand snippet. Arg full snippet"
-  (let* ((body-vector (cdr (assoc 'body snippet)))
-         ;; Convert vector to a list of strings and join with newlines
-         (body-str (mapconcat #'identity (append body-vector nil) "\n")))
-    (yas-expand-snippet body-str)))
 
 (require 'yasnippet)
 
-(defun my/expand-alist-smart (alist)
+(defun snippy/expand-snippet (snippet)
   "Convert LSP-style choices to YASnippet elisp and expand, handling strings or vectors."
-  (let* ((body-raw (cdr (assoc 'body alist)))
+  (let* ((body-raw (cdr (assoc 'body snippet)))
          ;; If it's a vector, join it. If it's already a string, use it.
          (body-str (if (vectorp body-raw)
                        (mapconcat #'identity (append body-raw nil) "\n")
                      body-raw))
          ;; Convert ${1|a,b|} to ${1:$$(yas-choose-value '("a" "b"))}
-         ;; First: Find the choice with regex
-         ;; Second: Replace it
          (convarted
           (replace-regexp-in-string
            "\\${\\([0-9]+\\)|\\([^|]+\\)|}"
@@ -136,12 +127,9 @@
                       (lisp-list (format "'(%s)"
                                          (mapconcat #'prin1-to-string choices " "))))
                  (format "${%s:$$(yas-choose-value %s)}" index lisp-list))))
-           string
+           body-str
            t t)
           )
 
          )
     (yas-expand-snippet convarted)))
-
-;; My Regex
-;; \${[1-9]\|[\w\-]+(,?[\w\-]+)*\|\}
