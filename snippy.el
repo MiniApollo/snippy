@@ -69,13 +69,14 @@
 (defvar-local snippy--buffer-language "markdown"
   "The language currently used by snippy in the local buffer.")
 
-(defun snippy--get-snippet-paths ()
+(defun snippy--get-all-snippets-paths ()
+  "Returns the snippets paths in package.json file for all languages"
   (alist-get 'snippets (alist-get 'contributes snippy-package-json-content)))
 
-(snippy-get-package-data)
-(snippy-check-engine-version)
-(snippy--get-snippet-paths)
-(message "%s" (snippy--get-snippet-paths))
+ (snippy-get-package-data)
+ (snippy-check-engine-version)
+ (snippy--get-all-snippets-paths)
+;; (message "%s" (snippy--get-all-snippets-paths))
 
 ;; Get language paths
 ;; AI slop warning
@@ -96,10 +97,10 @@
       my-snippet-data))))
 
 ; Test writeout
-;(message "Result for C: %s" (snippy--get-all-paths-by-language snippy--get-snippet-paths "cpp"))
-;(message "Result for Markdown: %s" (snippy--get-all-paths-by-language snippy--get-snippet-paths "rust"))
+;(message "Result for C: %s" (snippy--get-all-paths-by-language snippy--get-all-snippets-paths "cpp"))
+;(message "Result for Markdown: %s" (snippy--get-all-paths-by-language snippy--get-all-snippets-paths "rust"))
 
-(defvar-local snippy--buffer-language-path (snippy--get-all-paths-by-language (snippy--get-snippet-paths) snippy--buffer-language))
+(defvar-local snippy--buffer-language-path (snippy--get-all-paths-by-language (snippy--get-all-snippets-paths) snippy--buffer-language))
 ;(message "%s" snippy--buffer-language-path)
 
 ;; Read in snippets
@@ -136,7 +137,6 @@
   (interactive "sEnter snippet name: ")
   ;; (unless (featurep 'yasnippet)
   ;;   (user-error "Yasnippet is required for this function"))
-
   (message "%s" (snippy--find-snippet-by-prefix prefix snippy--merged-snippets))
   (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix snippy--merged-snippets))
   )
