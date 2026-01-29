@@ -122,19 +122,26 @@
          (body-str (if (vectorp body-raw)
                        (mapconcat #'identity (append body-raw nil) "\n")
                      body-raw))
-         ;; Convert ${1|a,b|} to ${1:`(yas-choose-value '("a" "b"))`}
-         (converted-body
+         ;; Convert ${1|a,b|} to ${1:$$(yas-choose-value '("a" "b"))}
+         ;; First: Find the choice with regex
+         ;; Second: Replace it
+         (convarted
           (replace-regexp-in-string
-           "\\${\\([0-9]+\\)|\\([^|]*\\)|}"
+           "\\${\\([0-9]+\\)|\\([^|]+\\)|}"
            (lambda (match)
-             (let* ((index (match-string 1 match))
-                    (options (match-string 2 match))
-                    (opt-list (split-string options ",")))
-               (format "${%s:`(yas-choose-value '(%s))`}"
-                       index
-                       (mapconcat (lambda (x) (format "\"%s\"" x)) opt-list " "))))
-           body-str)))
-    (message "%s" converted-body)))
+             (save-match-data  ;; <--- Essential to protect the outer match
+               (let* ((index (match-string 1 match))
+                      (choice-str (match-string 2 match))
+                      (choices (split-string choice-str "," t "[ \t\n\r]+"))
+                      (lisp-list (format "'(%s)"
+                                         (mapconcat #'prin1-to-string choices " "))))
+                 (format "${%s:$$(yas-choose-value %s)}" index lisp-list))))
+           string
+           t t)
+          )
 
-;; Test it:
-;; (my/expand-alist-smart my-css-snippet)
+         )
+    (yas-expand-snippet convarted)))
+
+;; My Regex
+;; \${[1-9]\|[\w\-]+(,?[\w\-]+)*\|\}
