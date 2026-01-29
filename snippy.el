@@ -81,7 +81,7 @@
 ;; Get language paths
 ;; AI slop warning
 ;; But it works
-(defun snippy--get-all-paths-by-language (my-snippet-data target-lang)
+(defun snippy--get-all-paths-for-language (my-snippet-data target-lang)
   "Return a list of all paths associated with TARGET-LANG."
   (let ((target (if (symbolp target-lang) (symbol-name target-lang) target-lang)))
     (seq-map
@@ -97,10 +97,10 @@
       my-snippet-data))))
 
 ; Test writeout
-;(message "Result for C: %s" (snippy--get-all-paths-by-language snippy--get-all-snippets-paths "cpp"))
-;(message "Result for Markdown: %s" (snippy--get-all-paths-by-language snippy--get-all-snippets-paths "rust"))
+;(message "Result for C: %s" (snippy--get-all-paths-for-language snippy--get-all-snippets-paths "cpp"))
+;(message "Result for Markdown: %s" (snippy--get-all-paths-for-language snippy--get-all-snippets-paths "rust"))
 
-(defvar-local snippy--buffer-language-path (snippy--get-all-paths-by-language (snippy--get-all-snippets-paths) snippy--buffer-language))
+(defvar-local snippy--buffer-language-path (snippy--get-all-paths-for-language (snippy--get-all-snippets-paths) snippy--buffer-language))
 ;(message "%s" snippy--buffer-language-path)
 
 ;; Read in snippets
