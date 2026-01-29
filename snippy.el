@@ -116,101 +116,168 @@
 )
 
 ;; SOMEWHAT WORKING SLOP
-(defvar-local my/snippet-overlays nil)
-(defvar-local my/snippet-index 0)
+(require 'cl-lib)
 
+;; 1. Variables and Faces
+(defvar-local my/snippet-overlays nil)
+(defvar-local my/snippet-current-index 0)
+
+;; Face for inactive fields
+(defface my/snippet-field-face
+  '((t :background "#444444" :underline nil))
+  "Face for snippet fields not currently being edited.")
+
+;; Face for the currently active field
+(defface my/snippet-active-face
+  '((t :inherit region :underline t))
+  "Face for the active snippet field.")
+
+;; Keymap that is only active when a snippet is running
+(defvar my/snippet-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "TAB") #'my/snippet-next)
+    (define-key map (kbd "<tab>") #'my/snippet-next)
+    (define-key map (kbd "S-TAB") #'my/snippet-prev)
+    (define-key map (kbd "<backtab>") #'my/snippet-prev)
+    (define-key map (kbd "C-g") #'my/snippet-exit)
+    map))
+
+(define-minor-mode my/snippet-mode
+  "Minor mode active during snippet expansion."
+  :init-value nil
+  :lighter " Snip"
+  :keymap my/snippet-mode-map)
+
+;; 2. Mirror Synchronization
 (defun my/sync-tabstops (ov after beg end &optional _len)
   "Synchronize all overlays sharing the same tabstop ID with OV."
-  ;; Only run after the change and if not undoing
   (when (and after (not undo-in-progress))
     (let* ((id (overlay-get ov 'tabstop))
-           (inhibit-modification-hooks t)
-           (text (buffer-substring-no-properties (overlay-start ov) (overlay-end ov))))
-      (save-excursion
-        (save-match-data
+           (text (buffer-substring-no-properties (overlay-start ov) (overlay-end ov)))
+           (inhibit-modification-hooks t)) ;; Prevent infinite loops
+
+      ;; Group changes so one 'undo' reverts mirrors and source together
+      (atomic-change-group
+        (save-excursion
           (dolist (mirror my/snippet-overlays)
-            (let ((m-beg (overlay-start mirror))
-                  (m-end (overlay-end mirror)))
-              ;; Sync if IDs match and it's not the overlay currently being edited
-              (when (and (eq (overlay-get mirror 'tabstop) id)
-                         (not (eq mirror ov)))
+            (when (and (eq (overlay-get mirror 'tabstop) id)
+                       (not (eq mirror ov))) ;; Don't edit the source
+              (let ((m-beg (overlay-start mirror))
+                    (m-end (overlay-end mirror)))
                 (goto-char m-beg)
                 (delete-region m-beg m-end)
                 (insert text)
-                ;; Update mirror bounds to match new text length
+                ;; Explicitly fix overlay bounds if insert moved them weirdly
                 (move-overlay mirror m-beg (point))))))))))
 
+;; 3. Expansion Logic
 (defun my/expand-snippet-at-point (snippet-alist)
-  "Expands snippet and links mirrors."
+  "Expands snippet, links mirrors, and activates snippet mode."
   (interactive)
+  ;; Ensure delete-selection-mode is on so typing replaces text
+  (unless delete-selection-mode (delete-selection-mode 1))
+
   (let* ((body-data (cdr (assoc 'body snippet-alist)))
          (body-str (if (vectorp body-data) (mapconcat #'identity body-data "\n") body-data))
+         (start (point))
          (all-ovs nil))
 
-    (mapc #'delete-overlay my/snippet-overlays)
-
-    ;; 1. Handle Choices (Interactively and globally for the string)
+    ;; A. Handle Choices (Interactively resolve before insertion)
     (while (string-match "\\${\\([0-9]+\\)|\\([^|]+\\)|}" body-str)
       (let* ((id (match-string 1 body-str))
              (options (split-string (match-string 2 body-str) ","))
              (choice (completing-read (format "Choice for $%s: " id) options)))
-        ;; Update EVERY instance of $id, ${id:default}, or ${id|choices|} in the string
         (setq body-str (replace-regexp-in-string
                         (format "\\$\\(%s\\)\\|\\${\\(%s\\)[:|][^}]+}" id id)
                         choice body-str))))
-    ;; 2. Insertion
-    (let ((start (point))
-          (all-ovs nil))
-      (insert body-str)
-      (save-excursion
-        (goto-char start)
-        ;; Limit the search to the end of the inserted string
-        (let ((limit (point-max))) ; Or use (+ start (length body-str)) if text after could match
-          (while (re-search-forward "\\$\\([0-9]+\\)\\|\\${\\([0-9]+\\):\\([^}]+\\)}" limit t)
-            (let* ((num (string-to-number (or (match-string 1) (match-string 2))))
-                   (val (or (match-string 3) ""))
-                   (beg (match-beginning 0)))
-              ;; 1. Replace the placeholder with the default value first
-              (replace-match val t t)
-              ;; 2. Create the overlay on the *new* text bounds
-              (let ((ov (make-overlay beg (point))))
-                (overlay-put ov 'tabstop num)
-                (overlay-put ov 'modification-hooks '(my/sync-tabstops))
-                (overlay-put ov 'face '(:background "#333" :underline t))
-                (push ov all-ovs))))))
 
-      ;; Update state and initialize
-      (setq my/snippet-overlays (nreverse all-ovs)
-            my/snippet-index 0)
-      (my/snippet-jump 0))))
+    ;; B. Insert text
+    (insert body-str)
 
+    ;; C. Parse Tabstops and Create Overlays
+    (save-excursion
+      (goto-char start)
+      (let ((limit (point-max)))
+        ;; Regex handles $1 and ${1:default}
+        (while (re-search-forward "\\$\\([0-9]+\\)\\|\\${\\([0-9]+\\):\\([^}]*\\)}" limit t)
+          (let* ((num (string-to-number (or (match-string 1) (match-string 2))))
+                 (val (or (match-string 3) ""))
+                 (match-beg (match-beginning 0))
+                 (match-end (match-end 0)))
+
+            ;; Replace placeholder with default value
+            (replace-match val t t)
+
+            ;; Create Overlay
+            ;; IMPORTANT: (point) is now after the inserted 'val'.
+            ;; Arg 4 (nil): Front-advance (false) - wait, actually...
+            ;; Arg 5 (t): Rear-advance (false)? No.
+            ;; We want (make-overlay BEG END BUFFER FRONT-ADVANCE REAR-ADVANCE)
+            ;; We set FRONT-ADVANCE to t. If we insert at the end of the field, it stays inside.
+            (let ((ov (make-overlay match-beg (point) nil nil t)))
+              (overlay-put ov 'tabstop num)
+              (overlay-put ov 'modification-hooks '(my/sync-tabstops))
+              (overlay-put ov 'face 'my/snippet-field-face)
+              ;; Priority ensures our face doesn't completely mask the region selection
+              (overlay-put ov 'priority 0)
+              (push ov all-ovs))))))
+
+    ;; D. Initialize State
+    (my/snippet-exit) ;; Clean up any previous snippets
+    (setq my/snippet-overlays (nreverse all-ovs)
+          my/snippet-current-index 0)
+    (my/snippet-mode 1) ;; Enable the keymap
+    (my/snippet-jump 0)))
+
+;; 4. Navigation
 (defun my/snippet-jump (n)
-  "Jump to the Nth tabstop and select its placeholder text."
-  (interactive "p")
+  "Jump to the Nth tabstop."
   (let* ((tabstops (mapcar (lambda (ov) (overlay-get ov 'tabstop)) my/snippet-overlays))
-         ;; Sort: 1, 2, 3... and 0 always goes last
-         (unique-sorted (sort (delete-dups tabstops)
-                              (lambda (a b)
-                                (if (zerop a) nil (if (zerop b) t (< a b))))))
-         (target-id (nth n unique-sorted))
-         (target-ov (seq-find (lambda (ov) (eq (overlay-get ov 'tabstop) target-id))
-                              my/snippet-overlays)))
+         ;; Sort unique IDs: 1, 2, 3... and 0 is always last
+         (unique-ids (sort (delete-dups (copy-sequence tabstops))
+                           (lambda (a b)
+                             (if (zerop a) nil (if (zerop b) t (< a b))))))
+         (target-id (nth n unique-ids)))
 
-    (cond
-     ;; Case 1: No more tabstops - Cleanup
-     ((or (not target-id) (< n 0))
-      (mapc #'delete-overlay my/snippet-overlays)
-      (setq my/snippet-overlays nil
-            my/snippet-index 0)
-      (message "Snippet finished."))
+    (if (not target-id)
+        (my/snippet-exit) ;; No more stops? Exit.
 
-     ;; Case 2: Jump and Select
-     (target-ov
-      (setq my/snippet-index n)
-      (goto-char (overlay-start target-ov))
-      (set-mark (overlay-end target-ov))
-      (activate-mark)
-      (message "Editing tabstop: %d" target-id)))))
+      ;; Update Index
+      (setq my/snippet-current-index n)
 
-(defun my/snippet-next () (interactive) (setq my/snippet-index (1+ my/snippet-index)) (my/snippet-jump my/snippet-index))
-(defun my/snippet-prev () (interactive) (setq my/snippet-index (1- my/snippet-index)) (my/snippet-jump my/snippet-index))
+      ;; Find the first overlay with this ID (primary field)
+      (let ((target-ov (seq-find (lambda (ov) (eq (overlay-get ov 'tabstop) target-id))
+                                 my/snippet-overlays)))
+        (when target-ov
+          ;; 1. Update faces: Make all inactive, then make target active
+          (dolist (ov my/snippet-overlays)
+            (overlay-put ov 'face 'my/snippet-field-face))
+          (dolist (ov my/snippet-overlays)
+            (when (eq (overlay-get ov 'tabstop) target-id)
+              (overlay-put ov 'face 'my/snippet-active-face)))
+
+          ;; 2. Move Point and Select
+          (goto-char (overlay-start target-ov))
+          (set-mark (overlay-end target-ov))
+          (activate-mark)
+
+          ;; Ensure the cursor is placed nicely if the field is empty
+          (when (= (overlay-start target-ov) (overlay-end target-ov))
+            (deactivate-mark)))))))
+
+(defun my/snippet-next ()
+  (interactive)
+  (my/snippet-jump (1+ my/snippet-current-index)))
+
+(defun my/snippet-prev ()
+  (interactive)
+  (my/snippet-jump (max 0 (1- my/snippet-current-index))))
+
+(defun my/snippet-exit ()
+  "Cleanup overlays and disable snippet mode."
+  (interactive)
+  (mapc #'delete-overlay my/snippet-overlays)
+  (setq my/snippet-overlays nil
+        my/snippet-current-index 0)
+  (my/snippet-mode -1)
+  (message "Snippet finished."))
