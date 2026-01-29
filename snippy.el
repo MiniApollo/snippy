@@ -199,8 +199,11 @@
           (progn
             (snippy-get-package-data)
             (snippy-check-engine-version)
+            ;; Hooks for language updates
             (add-hook 'prog-mode-hook #'snippy--update-buffer-language)
             (add-hook 'text-mode-hook #'snippy--update-buffer-language)
+            ;; Register the CAPF locally
+            (add-hook 'completion-at-point-functions #'snippy-capf nil t)
             (message "Snippy minor mode enabled."))
         (error
          (setq snippy-mode nil)
@@ -368,6 +371,68 @@
            body-choices t t)))
 
     (yas-expand-snippet final-body)))
+
+;; CAPF
+(defun snippy--doc-buffer (cand)
+  "Generate a documentation buffer for snippet CAND."
+  (when-let* ((snippet (get-text-property 0 'snippy-snippet cand))
+              (body-raw (cdr (assoc 'body snippet)))
+              (mode major-mode))
+    (with-current-buffer (get-buffer-create "*snippy-doc*")
+      (erase-buffer)
+      (let ((body-str (cond ((vectorp body-raw) (mapconcat #'identity body-raw "\n"))
+                            ((stringp body-raw) body-raw)
+                            (t ""))))
+        (insert "Expands to:\n\n" body-str)
+        ;; Simple font-lock based on the current buffer's mode
+        (delay-mode-hooks (funcall mode))
+        (ignore-errors (font-lock-ensure))
+        (current-buffer)))))
+
+(defvar snippy-capf-properties
+  (list :annotation-function (lambda (cand)
+                               (let ((desc (get-text-property 0 'snippy-desc cand)))
+                                 (if desc (format " -- %s" desc) " (Snippet)")))
+        :company-kind (lambda (_) 'snippet)
+        :company-doc-buffer #'snippy--doc-buffer
+        :exit-function (lambda (cand _status)
+                         (let ((beg (- (point) (length cand)))
+                               (end (point)))
+                           (delete-region beg end)
+                           (snippy-expand cand)))
+        :exclusive 'no)
+  "Completion extra properties for Snippy.")
+
+(defun snippy-capf-candidates (prefix)
+  "Return a list of candidates from Snippy propertized with metadata."
+  (let (candidates)
+    (pcase-dolist (`(,_name . ,data) snippy--merged-snippets)
+      (let ((p (cdr (assoc 'prefix data)))
+            (desc (cdr (assoc 'description data))))
+        (dolist (key (if (listp p) p (if (vectorp p) (append p nil) (list p))))
+          (when (string-prefix-p prefix key t)
+            (push (propertize key
+                             'snippy-desc desc
+                             'snippy-snippet data)
+                  candidates)))))
+    (delete-dups candidates)))
+
+;;;###autoload
+(defun snippy-capf (&optional interactive)
+  "Complete with snippy at point.
+If INTERACTIVE is non-nil, trigger completion immediately."
+  (interactive (list t))
+  (if interactive
+      (let ((completion-at-point-functions '(snippy-capf)))
+        (or (completion-at-point) (user-error "No snippy completions at point")))
+    (when (and snippy-minor-mode (thing-at-point 'symbol))
+      (let* ((bnd (bounds-of-thing-at-point 'symbol))
+             (start (car bnd))
+             (end (cdr bnd)))
+        `(,start ,end
+                 ,(completion-table-with-cache
+                   (lambda (input) (snippy-capf-candidates input)))
+                 ,@snippy-capf-properties)))))
 
 (provide 'snippy)
 ;;; snippy.el ends here
