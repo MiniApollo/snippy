@@ -29,13 +29,13 @@
   :type 'directory
   :group 'snippy)
 
-(defconst snippy-min-vscode-version "1.11.0"
+(defconst snippy--min-vscode-version "1.11.0"
   "The minimum VSCode engine version required.")
 
 (defvar snippy-package-json-content nil
   "Package json file content")
 
-(defun snippy--get-package-data ()
+(defun snippy-get-package-data ()
   "Read and parse the package.json file."
   (let ((file (expand-file-name "package.json" snippy-snippet-dir)))
     (if (file-exists-p file)
@@ -43,7 +43,7 @@
       (error "Could not find package.json in %s" snippy-snippet-dir))))
 
 ;; Vscode engine check
-(defun snippy-clean-version (version)
+(defun snippy--clean-version (version)
   "Extract a clean semver string from VERSION, removing ^ or ~."
   (when (stringp version)
     (if (string-match "\\([0-9.]+\\)" version)
@@ -52,29 +52,38 @@
 
 (defun snippy-check-engine-version()
   (let* ((current-engine-version
-          (snippy-clean-version (alist-get 'vscode (alist-get 'engines snippy-package-json-content)))))
+          (snippy--clean-version (alist-get 'vscode (alist-get 'engines snippy-package-json-content)))))
     (cond
      ((null current-engine-version)
       (message "Snippy: Could not determine VSCode version from package.json."))
-     ((version<= snippy-min-vscode-version current-engine-version)
+     ((version<= snippy--min-vscode-version current-engine-version)
       (message "Snippy: Version check passed %s" current-engine-version))
      (t
       (warn "Snippy: VSCode version %s is below requirement %s"
-            current-engine-version snippy-min-vscode-version)))
+            current-engine-version snippy--min-vscode-version)))
     ))
 
-(snippy--get-package-data)
-(snippy-check-engine-version)
 
 ;; Read in by language
 ;; Snippets
-(defvar snippy-snippets-paths (alist-get 'snippets (alist-get 'contributes snippy-package-json-content)))
-;(message "%s" snippy-snippets-paths)
+(defvar-local snippy--buffer-snippets-paths nil
+  "Paths to snippets")
+
+(defvar-local snippy--buffer-language "markdown"
+  "The language currently used by snippy in the local buffer.")
+
+(defun snippy--get-snippet-paths ()
+  (setq snippy--buffer-snippets-paths(alist-get 'snippets (alist-get 'contributes snippy-package-json-content))))
+
+(snippy-get-package-data)
+(snippy-check-engine-version)
+(snippy--get-snippet-paths)
+;; (message "%s" snippy--buffer-snippets-paths)
 
 ;; Get language paths
 ;; AI slop warning
 ;; But it works
-(defun snippy/get-all-paths-by-language (my-snippet-data target-lang)
+(defun snippy--get-all-paths-by-language (my-snippet-data target-lang)
   "Return a list of all paths associated with TARGET-LANG."
   (let ((target (if (symbolp target-lang) (symbol-name target-lang) target-lang)))
     (seq-map
@@ -90,30 +99,27 @@
       my-snippet-data))))
 
 ; Test writeout
-;(message "Result for C: %s" (snippy/get-all-paths-by-language snippy-snippets-paths "cpp"))
-;(message "Result for Markdown: %s" (snippy/get-all-paths-by-language snippy-snippets-paths "rust"))
+;(message "Result for C: %s" (snippy--get-all-paths-by-language snippy--buffer-snippets-paths "cpp"))
+;(message "Result for Markdown: %s" (snippy--get-all-paths-by-language snippy--buffer-snippets-paths "rust"))
 
-(defvar snippy/current-language "markdown"
-  "The language currently used by snippy in the local buffer.")
-
-(defvar snippy/current-language-path (snippy/get-all-paths-by-language snippy-snippets-paths snippy/current-language))
-;(message "%s" snippy/current-language-path)
+(defvar-local snippy--buffer-language-path (snippy--get-all-paths-by-language snippy--buffer-snippets-paths snippy--buffer-language))
+;(message "%s" snippy--buffer-language-path)
 
 ;; Read in snippets
-(defvar snippy/merged-snippets
+(defvar-local snippy--merged-snippets
   (mapcan (lambda (suffix)
             (let ((full-path (concat snippy-snippet-dir suffix)))
               (if (file-exists-p full-path)
                   (json-read-file full-path)
                 (ignore (message "Skipping: %s (not found)" full-path)))))
-          snippy/current-language-path)
-  "A merged alist of all snippets found in the paths defined by snippy/current-language-path.")
+          snippy--buffer-language-path)
+  "A merged alist of all snippets found in the paths defined by snippy--buffer-language-path.")
 
-;; (message "%s" snippy/merged-snippets)
+;; (message "%s" snippy--merged-snippets)
 
 ;; Search for snippet
 (require 'seq)
-(defun snippy/find-snippet-by-prefix (prefix snippets)
+(defun snippy--find-snippet-by-prefix (prefix snippets)
   "Return the first snippet entry where the prefix matches PREFIX."
   (seq-find (lambda (snippet)
               (let* ((snippet-data (cdr snippet))
@@ -129,13 +135,13 @@
             snippets))
 
 ;; Expand Snippet
-(defun snippy/expand-snippet-by-prefix (prefix)
+(defun snippy-expand-snippet-by-prefix (prefix)
   (interactive "sEnter snippet name: ")
   ;; (unless (featurep 'yasnippet)
   ;;   (user-error "Yasnippet is required for this function"))
 
-  (message "%s" (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
-  (snippy/expand-snippet (snippy/find-snippet-by-prefix prefix snippy/merged-snippets))
+  (message "%s" (snippy--find-snippet-by-prefix prefix snippy--merged-snippets))
+  (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix snippy--merged-snippets))
   )
 
 (require 'yasnippet)
@@ -181,7 +187,7 @@
       ;; Fallback
       (_ nil))))
 
-(defun snippy/expand-snippet (snippet)
+(defun snippy-expand-snippet (snippet)
   "Convert LSP-style choices to YASnippet elisp and expand, handling strings or vectors."
   (let* ((body-raw (cdr (assoc 'body snippet)))
          ;; If it's a vector, join it. If it's already a string, use it.
