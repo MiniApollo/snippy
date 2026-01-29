@@ -13,7 +13,6 @@
 
 ;; TODO
 ;; Major mode loading
-;; Clean up for release
 
 ;; Not very interesting
 ;; Variable-Transform
@@ -63,7 +62,6 @@
             current-engine-version snippy--min-vscode-version)))
     ))
 
-
 ;; Read in by language
 ;; Snippets
 (defvar-local snippy--buffer-language "markdown"
@@ -73,10 +71,29 @@
   "Returns the snippets paths in package.json file for all languages"
   (alist-get 'snippets (alist-get 'contributes snippy-package-json-content)))
 
- (snippy-get-package-data)
- (snippy-check-engine-version)
- (snippy--get-all-snippets-paths)
+;;  (snippy-get-package-data)
+;;  (snippy-check-engine-version)
 ;; (message "%s" (snippy--get-all-snippets-paths))
+
+(define-minor-mode snippy-minor-mode
+  "Minor mode for managing snippets via package.json."
+  :group 'snippy
+  (if snippy-minor-mode
+      ;; Logic when the mode is TURNED ON
+      (condition-case err
+          (progn
+            (snippy-get-package-data)
+            (snippy-check-engine-version)
+            (snippy-refresh-snippets)
+            (message "Snippy minor mode enabled."))
+        (error
+         (setq snippy-mode nil)
+         (error "Failed to enable Snippy mode: %s" (error-message-string err))))
+    ;; Logic when the mode is TURNED OFF
+    (setq snippy-package-json-content nil
+          snippy--buffer-language nil
+          snippy--merged-snippets nil)
+    (message "Snippy minor mode disabled.")))
 
 ;; Get language paths
 ;; AI slop warning
@@ -106,15 +123,20 @@
 ;(message "%s" (snippy--get-current-language-path))
 
 ;; Read in snippets
-(defvar-local snippy--merged-snippets
-  (mapcan (lambda (suffix)
-            (let ((full-path (concat snippy-snippet-dir suffix)))
-              (if (file-exists-p full-path)
-                  (json-read-file full-path)
-                (ignore (message "Skipping: %s (not found)" full-path)))))
-          (snippy--get-current-language-path))
+(defvar-local snippy--merged-snippets nil
   "A merged alist of all snippets found in the paths defined by snippy--get-current-language-path.")
 
+(defun snippy-refresh-snippets ()
+  "Force an update on the snippets for the current buffer."
+  (interactive)
+  (setq snippy--merged-snippets
+        (mapcan (lambda (suffix)
+                  (let ((full-path (concat snippy-snippet-dir suffix)))
+                    (if (file-exists-p full-path)
+                        (json-read-file full-path)
+                      (message "Skipping: %s (not found)" full-path)
+                      nil))) ; Ensure we return nil for mapcan if file missing
+                (snippy--get-current-language-path))))
 ;; (message "%s" snippy--merged-snippets)
 
 ;; Search for snippet
@@ -140,8 +162,7 @@
   ;; (unless (featurep 'yasnippet)
   ;;   (user-error "Yasnippet is required for this function"))
   (message "%s" (snippy--find-snippet-by-prefix prefix snippy--merged-snippets))
-  (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix snippy--merged-snippets))
-  )
+  (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix snippy--merged-snippets)))
 
 (require 'yasnippet)
 
