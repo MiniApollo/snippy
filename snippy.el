@@ -100,8 +100,10 @@
 ;(message "Result for C: %s" (snippy--get-all-paths-for-language snippy--get-all-snippets-paths "cpp"))
 ;(message "Result for Markdown: %s" (snippy--get-all-paths-for-language snippy--get-all-snippets-paths "rust"))
 
-(defvar-local snippy--buffer-language-path (snippy--get-all-paths-for-language (snippy--get-all-snippets-paths) snippy--buffer-language))
-;(message "%s" snippy--buffer-language-path)
+(defun snippy--get-current-language-path ()
+  "Returns the snippet language path for the current language in the buffer"
+  (snippy--get-all-paths-for-language (snippy--get-all-snippets-paths) snippy--buffer-language))
+;(message "%s" (snippy--get-current-language-path))
 
 ;; Read in snippets
 (defvar-local snippy--merged-snippets
@@ -110,8 +112,8 @@
               (if (file-exists-p full-path)
                   (json-read-file full-path)
                 (ignore (message "Skipping: %s (not found)" full-path)))))
-          snippy--buffer-language-path)
-  "A merged alist of all snippets found in the paths defined by snippy--buffer-language-path.")
+          (snippy--get-current-language-path))
+  "A merged alist of all snippets found in the paths defined by snippy--get-current-language-path.")
 
 ;; (message "%s" snippy--merged-snippets)
 
