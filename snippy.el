@@ -212,6 +212,10 @@
 (defvar-local snippy--buffer-language nil
   "The language currently used by snippy in the local buffer.")
 
+;; Read in snippets
+(defvar-local snippy--merged-snippets nil
+  "A merged alist of all snippets found in the snippets files")
+
 (defun snippy--get-vscode-language-name (&optional mode)
   "Return the VS Code language string for MODE (defaults to current `major-mode`)."
   (let* ((target-mode (or mode major-mode))
@@ -249,7 +253,7 @@
             (add-hook 'completion-at-point-functions #'snippy-capf nil t)
             (message "Snippy minor mode enabled in current buffer"))
         (error
-         (setq snippy-mode nil)
+         (setq snippy-minor-mode nil)
          (error "Failed to enable Snippy mode: %s" (error-message-string err))))
     ;; Logic when the mode is TURNED OFF
     (setq snippy-package-json-content nil
@@ -298,7 +302,7 @@
 ;; (message "Result for Markdown: %s" (snippy--get-all-paths-for-language snippy--get-all-snippets-paths "rust"))
 
 (defun snippy--get-current-language-path ()
-  "Returns a combined list of snippet paths for all languages in `snippy--buffer-language`."
+  "Returns a combined list of snippet paths for all languages"
   (let ((all-snippet-dirs (snippy--get-all-snippets-paths)))
     (if (listp snippy--buffer-language)
         ;; If it's a list, map over it and flatten the results
@@ -307,10 +311,6 @@
                 snippy--buffer-language)
       ;; Fallback for a single string if necessary
       (snippy--get-all-paths-for-language all-snippet-dirs snippy--buffer-language))))
-
-;; Read in snippets
-(defvar-local snippy--merged-snippets nil
-  "A merged alist of all snippets found in the paths defined by snippy--get-current-language-path.")
 
 (defun snippy-refresh-snippets ()
   "Force an update on the snippets for the current buffer."
@@ -395,7 +395,7 @@
       (_ nil))))
 
 (defun snippy-expand-snippet (snippet)
-  "Convert LSP-style choices to YASnippet elisp and expand, handling strings or vectors."
+  "Convert VSCode snippets to Yasnippet and expand it"
   (let* ((body-raw (cdr (assoc 'body snippet)))
          ;; If it's a vector, join it. If it's already a string, use it.
          (body-str (cond ((vectorp body-raw) (mapconcat #'identity body-raw "\n"))
