@@ -27,7 +27,7 @@
 
 ;;; Commentary:
 
-;; Vscode snippets support for Emacs
+;; VSCode snippets support for Emacs with Yasnippet
 
 ;;; Code:
 
@@ -39,7 +39,7 @@
   :group 'editing)
 
 (defcustom snippy-install-dir (expand-file-name user-emacs-directory)
-  "Directory where to install snippets"
+  "Directory where to install/clone snippets"
   :type 'directory
   :group 'snippy)
 
@@ -53,7 +53,6 @@
   "Return snippet directory"
   (expand-file-name (cdr snippy-source) snippy-install-dir))
 
-;; (setq snippy-global-languages '("global"))
 (defcustom snippy-global-languages nil
   "List of languages to enable globally across all major modes."
   :type '(repeat string)
@@ -66,16 +65,16 @@
   "Package json file content")
 
 (defun snippy-install-or-update-snippets ()
-  "Install or update friendly-snippets in snippy-install-dir.
+  "Install or update snippet git repo in snippy-install-dir.
           If snippy-install-dir is nil, it defaults to `user-emacs-directory`."
   (interactive)
   (let* ((base (or snippy-install-dir user-emacs-directory))
-         (dest (expand-file-name "friendly-snippets" base)))
+         (dest (expand-file-name (cdr snippy-source) base)))
     (if (file-directory-p dest)
         (let ((default-directory dest))
           (message "Pulling updates in %s..." dest)
           (start-process "Snippy-git-pull" nil "git" "pull"))
-      (message "Cloning friendly-snippets to %s..." dest)
+      (message "Cloning %s to %s..." (cdr snippy-source) dest)
       (vc-clone (car snippy-source) 'Git dest))))
 
 (defun snippy-get-package-data ()
@@ -106,7 +105,7 @@
             current-engine-version snippy--min-vscode-version)))
     ))
 
-(defvar snippy--emacs-to-vscode-lang-alist
+(defvar snippy-emacs-to-vscode-lang-alist
   '((text-mode . "plaintext")
     (markdown-mode . "markdown")
     (gfm-mode . "markdown")
@@ -214,7 +213,7 @@
 (defun snippy--get-vscode-language-name (&optional mode)
   "Return the VS Code language string for MODE (defaults to current `major-mode`)."
   (let* ((target-mode (or mode major-mode))
-         (match (assoc target-mode snippy--emacs-to-vscode-lang-alist)))
+         (match (assoc target-mode snippy-emacs-to-vscode-lang-alist)))
     (if match
         (cdr match)
       (message "No VS Code mapping found for %s" target-mode)
@@ -235,7 +234,7 @@
 
 ;;;###autoload
 (define-minor-mode snippy-minor-mode
-  "Minor mode for managing snippets via package.json."
+  "Toggle snippy in the current buffer"
   :group 'snippy
   (if snippy-minor-mode
       ;; Logic when the mode is TURNED ON
@@ -343,7 +342,7 @@
 ;; Expand Snippet
 (defun snippy-expand (prefix)
   "Expand snippet by prefix"
-  (interactive "sEnter snippet name: ")
+  (interactive "sEnter snippet prefix: ")
   (unless (featurep 'yasnippet)
     (user-error "Yasnippet is not loaded. Please install or require it first"))
   (unless (bound-and-true-p yas-minor-mode)
