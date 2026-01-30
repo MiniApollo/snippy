@@ -13,7 +13,7 @@
 
 ;; TODO
 ;; Multi language support
-;; Remove hooks when snipp
+;; Remove hooks when turned off
 
 ;; Not very interesting
 ;; Variable-Transform
@@ -204,7 +204,7 @@
             (add-hook 'text-mode-hook #'snippy--update-buffer-language)
             ;; Register the CAPF locally
             (add-hook 'completion-at-point-functions #'snippy-capf nil t)
-            (message "Snippy minor mode enabled."))
+            (message "Snippy minor mode enabled in current buffer"))
         (error
          (setq snippy-mode nil)
          (error "Failed to enable Snippy mode: %s" (error-message-string err))))
@@ -212,7 +212,20 @@
     (setq snippy-package-json-content nil
           snippy--buffer-language nil
           snippy--merged-snippets nil)
-    (message "Snippy minor mode disabled.")))
+    (remove-hook 'completion-at-point-functions #'snippy-capf t)
+    (message "Snippy minor mode disabled in current buffer")))
+
+;;;###autoload
+(define-globalized-minor-mode global-snippy-minor-mode
+  snippy-minor-mode
+  snippy--turn-on
+  :group 'snippy)
+
+(defun snippy--turn-on ()
+  "Enable `snippy-minor-mode` in the current buffer."
+  ;; You can add logic here to exclude certain buffers (like minibuffers)
+  (unless (minibufferp)
+    (snippy-minor-mode 1)))
 
 ;; Get language paths
 ;; AI slop warning
