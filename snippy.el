@@ -58,6 +58,12 @@
   :type 'directory
   :group 'snippy)
 
+;; (setq snippy-global-languages '("global"))
+(defcustom snippy-global-languages nil
+  "List of languages to enable globally across all major modes."
+  :type '(repeat string)
+  :group 'snippy)
+
 (defconst snippy--min-vscode-version "1.11.0"
   "The minimum VSCode engine version required.")
 
@@ -92,8 +98,6 @@
             current-engine-version snippy--min-vscode-version)))
     ))
 
-;; Read in by language
-;; Snippets
 (defvar snippy--emacs-to-vscode-lang-alist
   '((text-mode . "plaintext")
     (markdown-mode . "markdown")
@@ -190,6 +194,8 @@
     (zig-mode . "zig"))
   "Alist mapping Emacs major modes to VS Code language identifiers.")
 
+;; Read in by language
+;; Snippets
 (defvar-local snippy--buffer-language nil
   "The language currently used by snippy in the local buffer.")
 
@@ -204,8 +210,8 @@
 
 (defun snippy--update-buffer-language ()
   "Update `snippy--buffer-language` based on the current major mode."
-  (setq snippy--buffer-language (snippy--get-vscode-language-name))
-  (snippy-refresh-snippets))
+  (setq snippy--buffer-language
+        (cons (snippy--get-vscode-language-name) snippy-global-languages)))
 
 (defun snippy--get-all-snippets-paths ()
   "Returns the snippets paths in package.json file for all languages"
@@ -225,7 +231,7 @@
           (progn
             (snippy-get-package-data)
             (snippy-check-engine-version)
-            (snippy--update-buffer-language)
+            (snippy-refresh-snippets)
             ;; Register the CAPF locally
             (add-hook 'completion-at-point-functions #'snippy-capf nil t)
             (message "Snippy minor mode enabled in current buffer"))
@@ -279,9 +285,15 @@
 ;; (message "Result for Markdown: %s" (snippy--get-all-paths-for-language snippy--get-all-snippets-paths "rust"))
 
 (defun snippy--get-current-language-path ()
-  "Returns the snippet language path for the current language in the buffer"
-  (snippy--get-all-paths-for-language (snippy--get-all-snippets-paths) snippy--buffer-language))
-;(message "%s" (snippy--get-current-language-path))
+  "Returns a combined list of snippet paths for all languages in `snippy--buffer-language`."
+  (let ((all-snippet-dirs (snippy--get-all-snippets-paths)))
+    (if (listp snippy--buffer-language)
+        ;; If it's a list, map over it and flatten the results
+        (mapcan (lambda (lang)
+                  (snippy--get-all-paths-for-language all-snippet-dirs lang))
+                snippy--buffer-language)
+      ;; Fallback for a single string if necessary
+      (snippy--get-all-paths-for-language all-snippet-dirs snippy--buffer-language))))
 
 ;; Read in snippets
 (defvar-local snippy--merged-snippets nil
@@ -290,6 +302,7 @@
 (defun snippy-refresh-snippets ()
   "Force an update on the snippets for the current buffer."
   (interactive)
+  (snippy--update-buffer-language)
   (setq snippy--merged-snippets
         (mapcan (lambda (suffix)
                   (let ((full-path (concat snippy-snippet-dir suffix)))
