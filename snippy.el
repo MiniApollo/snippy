@@ -12,8 +12,8 @@
 ;;; Code:
 
 ;; TODO
-;; Not working in javscript mode for Placeholders not fully working
 ;; Multi language support
+;; Remove hooks when snipp
 
 ;; Not very interesting
 ;; Variable-Transform
@@ -373,6 +373,7 @@
     (yas-expand-snippet final-body)))
 
 ;; CAPF
+;; From yasnippet-capf
 (defun snippy--doc-buffer (cand)
   "Generate a documentation buffer for snippet CAND."
   (when-let* ((snippet (get-text-property 0 'snippy-snippet cand))
