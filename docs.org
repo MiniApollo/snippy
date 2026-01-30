@@ -4,19 +4,12 @@
 #+Options: toc:2
 
 * Table of Contents :toc:
-- [[#why-use-this][Why use this:]]
 - [[#links][Links]]
   - [[#vscode][Vscode:]]
 - [[#program-structure][Program Structure]]
 - [[#favorite-snippets][Favorite snippets]]
 - [[#hacks][Hacks]]
 - [[#dev-variables-functions][Dev variables, functions]]
-
-* Why use this:
-Snippets are underdeveloped in Emacs:
-Yasnippet and Tempel don't have a well maintained snippet collections.
-Both use their own custom format. I want to use snippets that everybody uses not just Emacs users.
-Emacs has a developer problem. NeoVim is very well maintained compared to Emacs.
 
 * Links
 Specification
