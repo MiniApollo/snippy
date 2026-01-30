@@ -242,8 +242,6 @@
           (progn
             (snippy-get-package-data)
             (snippy-refresh-snippets)
-            ;; Register the CAPF locally
-            (add-hook 'completion-at-point-functions #'snippy-capf nil t)
             (when (called-interactively-p 'any)
               (progn (snippy-check-engine-version)
                      (message "Snippy minor mode enabled in current buffer"))))
@@ -254,7 +252,6 @@
     (setq snippy-package-json-content nil
           snippy--buffer-language nil
           snippy--merged-snippets nil)
-    (remove-hook 'completion-at-point-functions #'snippy-capf t)
     (when (called-interactively-p 'any)
       (message "Snippy minor mode disabled in current buffer"))))
 
