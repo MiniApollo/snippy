@@ -1,9 +1,29 @@
 ;;; snippy.el --- Vscode snippets support for Emacs  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2026 Mark Surmann
+
+;; Author: Mark Surmann <overmilord62@gmail.com>
+;; Created: 28 Jan 2026
+
 ;; Keywords: snippet
-;; Package-Requires: ((emacs "25.1") )
+;; Package-Requires: ((emacs "26.1") (yasnippet "0.14.0"))
 ;; Version: 0.1.0
+;; URL: https://example.com/foo
+
+;; This file is not part of GNU Emacs.
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -17,7 +37,6 @@
 ;; Add all languages like cdoc
 ;; Allow adding vars to languages to include always
 ;; Add custom dir support
-;; Add licence to file top GPLV3
 
 ;; FIXME:
 ;; To many messages in global minor mode
