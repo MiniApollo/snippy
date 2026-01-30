@@ -5,7 +5,7 @@
 
 * Table of Contents :toc:
 - [[#links][Links]]
-  - [[#vscode][Vscode:]]
+  - [[#vscode][Vscode]]
 - [[#program-structure][Program Structure]]
 - [[#favorite-snippets][Favorite snippets]]
 - [[#hacks][Hacks]]
@@ -13,19 +13,18 @@
 
 * Links
 Specification
-https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#snippet_syntax
+- https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#snippet_syntax
 
 TJ
-https://www.youtube.com/watch?v=Dn800rlPIho
-https://www.youtube.com/watch?v=aNWx-ym7jjI
+- https://www.youtube.com/watch?v=Dn800rlPIho
+- https://www.youtube.com/watch?v=aNWx-ym7jjI
 
-** Vscode:
-- Code:
+** Vscode
+*** Code
 https://github.com/microsoft/vscode/tree/6b921dda5c679c6ca1928a4505567c533ede72f9/src/vs/editor/contrib/snippet/browser
-Docs:
+*** Docs
 - https://github.com/microsoft/vscode/blob/6b921dda5c679c6ca1928a4505567c533ede72f9/src/vs/editor/contrib/snippet/browser/snippet.md
-
-https://code.visualstudio.com/docs/editing/userdefinedsnippets#_placeholders
+- https://code.visualstudio.com/docs/editing/userdefinedsnippets#_placeholders
 
 * Program Structure
 - Read from package.json location
