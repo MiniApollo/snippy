@@ -13,7 +13,6 @@
 
 ;; TODO
 ;; Multi language support
-;; Remove hooks when turned off
 
 ;; Not very interesting
 ;; Variable-Transform
@@ -199,9 +198,7 @@
           (progn
             (snippy-get-package-data)
             (snippy-check-engine-version)
-            ;; Hooks for language updates
-            (add-hook 'prog-mode-hook #'snippy--update-buffer-language)
-            (add-hook 'text-mode-hook #'snippy--update-buffer-language)
+            (snippy--update-buffer-language)
             ;; Register the CAPF locally
             (add-hook 'completion-at-point-functions #'snippy-capf nil t)
             (message "Snippy minor mode enabled in current buffer"))
