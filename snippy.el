@@ -70,6 +70,19 @@
 (defvar snippy-package-json-content nil
   "Package json file content")
 
+(defun snippy-install-or-update-snippets (&optional target-dir)
+  "Install or update friendly-snippets in TARGET-DIR.
+          If TARGET-DIR is nil, it defaults to `user-emacs-directory`."
+  (interactive)
+  (let* ((base (or target-dir user-emacs-directory))
+         (dest (expand-file-name "friendly-snippets" base)))
+    (if (file-directory-p dest)
+        (let ((default-directory dest))
+          (message "Pulling updates in %s..." dest)
+          (start-process "Snippy-git-pull" nil "git" "pull"))
+      (message "Cloning friendly-snippets to %s..." dest)
+      (vc-clone "https://github.com/rafamadriz/friendly-snippets.git" 'Git dest))))
+
 (defun snippy-get-package-data ()
   "Read and parse the package.json file."
   (let ((file (expand-file-name "package.json" snippy-snippet-dir)))
