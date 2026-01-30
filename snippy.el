@@ -13,6 +13,7 @@
 
 ;; TODO
 ;; Multi language support
+;; Auto download of friendly-snippets or changed repo with var
 
 ;; Not very interesting
 ;; Variable-Transform
