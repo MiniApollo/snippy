@@ -31,8 +31,7 @@ Emacs has a developer problem. NeoVim is very well maintained compared to Emacs.
 
 <a id="Features"></a>
 # Features
-Specification:
-https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#snippet_syntax
+[Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#snippet_syntax)
 
 ## Tabstops
 
