@@ -431,19 +431,20 @@
 ;;;###autoload
 (defun snippy-capf (&optional interactive)
   "Complete with snippy at point.
-If INTERACTIVE is non-nil, trigger completion immediately."
+If INTERACTIVE is non-nil, trigger completion immediately.
+Works even with an empty prefix/string."
   (interactive (list t))
   (if interactive
       (let ((completion-at-point-functions '(snippy-capf)))
         (or (completion-at-point) (user-error "No snippy completions at point")))
-    (when (and snippy-minor-mode (thing-at-point 'symbol))
+    (when snippy-minor-mode
       (let* ((bnd (bounds-of-thing-at-point 'symbol))
-             (start (car bnd))
-             (end (cdr bnd)))
+             ;; If no symbol at point, use the current position for both start and end
+             (start (or (car bnd) (point)))
+             (end (or (cdr bnd) (point))))
         `(,start ,end
-                 ,(completion-table-with-cache
-                   (lambda (input) (snippy-capf-candidates input)))
-                 ,@snippy-capf-properties)))))
-
+          ,(completion-table-with-cache
+            (lambda (input) (snippy-capf-candidates input)))
+          ,@snippy-capf-properties)))))
 (provide 'snippy)
 ;;; snippy.el ends here
