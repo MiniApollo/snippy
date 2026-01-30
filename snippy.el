@@ -31,21 +31,6 @@
 
 ;;; Code:
 
-;; TODO
-;; Auto download of friendly-snippets or changed repo with var
-;; Multi language support
-;; Add all languages like cdoc
-;; Allow adding vars to languages to include always
-;; Add custom dir support
-
-;; FIXME:
-;; To many messages in global minor mode
-
-;; Not very interesting
-;; Variable-Transform
-;; Placeholder-Transform
-;; Grammar
-
 (require 'seq)
 (require 'yasnippet)
 
@@ -68,7 +53,7 @@
   "Return snippet directory"
   (expand-file-name (cdr snippy-source) snippy-install-dir))
 
-(setq snippy-global-languages '("global"))
+;; (setq snippy-global-languages '("global"))
 (defcustom snippy-global-languages nil
   "List of languages to enable globally across all major modes."
   :type '(repeat string)
