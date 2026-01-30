@@ -2,6 +2,10 @@
 
 VSCode/LSP snippet support for Emacs with Yasnippet.
 
+
+https://github.com/user-attachments/assets/659158b0-562a-4d51-8393-70f20d974226
+
+
 # Table of Contents
 
 - [Introduction](#Introduction)
@@ -34,13 +38,29 @@ Emacs has a developer problem. NeoVim is very well maintained compared to Emacs.
 [Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#snippet_syntax)
 ## Automatic mode detection
 
+https://github.com/user-attachments/assets/086be2f5-3d9d-4145-a1ba-bc72f48f83fa
+
 ## Tabstops
+
+https://github.com/user-attachments/assets/f08701eb-71ce-4882-b455-8a71f3146833
 
 ## Placeholders
 
+
+https://github.com/user-attachments/assets/2081fd57-a02d-4505-93ea-7eee52858601
+
+
 ## Choice
 
+
+https://github.com/user-attachments/assets/c430debd-9a1d-4f0f-9085-0a8ad30e12ab
+
+
 ## Variables
+
+
+https://github.com/user-attachments/assets/8938890f-2b31-4c4d-8332-3110f2707010
+
 
 <a id="Installation"></a>
 # Installation
