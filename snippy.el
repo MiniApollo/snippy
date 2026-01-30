@@ -53,12 +53,22 @@
   "Custom snippet management utilities."
   :group 'editing)
 
-(defcustom snippy-snippet-dir (expand-file-name "./friendly-snippets/")
-  "Directory containing the snippets and package.json."
+(defcustom snippy-install-dir (expand-file-name user-emacs-directory)
+  "Directory where to install snippets"
   :type 'directory
   :group 'snippy)
 
-;; (setq snippy-global-languages '("global"))
+(defcustom snippy-source '("https://github.com/rafamadriz/friendly-snippets.git" . "friendly-snippets")
+  "The source details for downloading snippets."
+  :type '(cons (string :tag "Repository URL")
+               (string :tag "Directory Name"))
+  :group 'snippy)
+
+(defun snippy--get-snippet-dir ()
+  "Return snippet directory"
+  (expand-file-name (cdr snippy-source) snippy-install-dir))
+
+(setq snippy-global-languages '("global"))
 (defcustom snippy-global-languages nil
   "List of languages to enable globally across all major modes."
   :type '(repeat string)
@@ -70,25 +80,25 @@
 (defvar snippy-package-json-content nil
   "Package json file content")
 
-(defun snippy-install-or-update-snippets (&optional target-dir)
-  "Install or update friendly-snippets in TARGET-DIR.
-          If TARGET-DIR is nil, it defaults to `user-emacs-directory`."
+(defun snippy-install-or-update-snippets ()
+  "Install or update friendly-snippets in snippy-install-dir.
+          If snippy-install-dir is nil, it defaults to `user-emacs-directory`."
   (interactive)
-  (let* ((base (or target-dir user-emacs-directory))
+  (let* ((base (or snippy-install-dir user-emacs-directory))
          (dest (expand-file-name "friendly-snippets" base)))
     (if (file-directory-p dest)
         (let ((default-directory dest))
           (message "Pulling updates in %s..." dest)
           (start-process "Snippy-git-pull" nil "git" "pull"))
       (message "Cloning friendly-snippets to %s..." dest)
-      (vc-clone "https://github.com/rafamadriz/friendly-snippets.git" 'Git dest))))
+      (vc-clone (car snippy-source) 'Git dest))))
 
 (defun snippy-get-package-data ()
   "Read and parse the package.json file."
-  (let ((file (expand-file-name "package.json" snippy-snippet-dir)))
+  (let ((file (expand-file-name "package.json" (snippy--get-snippet-dir))))
     (if (file-exists-p file)
         (setq snippy-package-json-content (json-read-file file))
-      (error "Could not find package.json in %s" snippy-snippet-dir))))
+      (error "Could not find package.json in %s" (snippy--get-snippet-dir)))))
 
 ;; Vscode engine check
 (defun snippy--clean-version (version)
@@ -247,11 +257,12 @@
       (condition-case err
           (progn
             (snippy-get-package-data)
-            (snippy-check-engine-version)
             (snippy-refresh-snippets)
             ;; Register the CAPF locally
             (add-hook 'completion-at-point-functions #'snippy-capf nil t)
-            (message "Snippy minor mode enabled in current buffer"))
+            (when (called-interactively-p 'any)
+              (progn (snippy-check-engine-version)
+                     (message "Snippy minor mode enabled in current buffer"))))
         (error
          (setq snippy-minor-mode nil)
          (error "Failed to enable Snippy mode: %s" (error-message-string err))))
@@ -260,28 +271,30 @@
           snippy--buffer-language nil
           snippy--merged-snippets nil)
     (remove-hook 'completion-at-point-functions #'snippy-capf t)
-    (message "Snippy minor mode disabled in current buffer")))
+    (when (called-interactively-p 'any)
+      (message "Snippy minor mode disabled in current buffer"))))
+
 
 ;;;###autoload
 (define-globalized-minor-mode global-snippy-minor-mode
   snippy-minor-mode
   snippy--turn-on
-  :group 'snippy)
+  :group 'snippy
+  (if global-snippy-minor-mode
+      (progn (snippy-check-engine-version)
+             (message "Global Snippy mode enabled"))
+    (message "Global Snippy mode disabled")))
 
 (defun snippy--turn-on ()
-  "Enable `snippy-minor-mode` in appropriate buffers."
+  "Enable `snippy-minor-mode` only in file-visiting programming or text buffers."
   (when (and (not (minibufferp))
-             ;; Ensure there is an actual file or a major mode set
-             (not (derived-mode-p 'special-mode))
-             (not (derived-mode-p 'tags-table-mode))
-             ;; Optional: Only enable if a package.json exists in the project
-             ;; (locate-dominating-file default-directory "package.json")
-             )
-    (snippy-minor-mode 1)))
+             ;; Only enable in "real" content buffers (Prog or Text)
+             (derived-mode-p 'prog-mode 'text-mode)
+             ;; Prevent infinite loops or redundant checks
+             (not snippy-minor-mode))
+    (snippy-minor-mode t)))
 
 ;; Get language paths
-;; AI slop warning
-;; But it works
 (defun snippy--get-all-paths-for-language (my-snippet-data target-lang)
   "Return a list of all paths associated with TARGET-LANG."
   (let ((target (if (symbolp target-lang) (symbol-name target-lang) target-lang)))
@@ -318,7 +331,7 @@
   (snippy--update-buffer-language)
   (setq snippy--merged-snippets
         (mapcan (lambda (suffix)
-                  (let ((full-path (concat snippy-snippet-dir suffix)))
+                  (let ((full-path (expand-file-name suffix (snippy--get-snippet-dir))))
                     (if (file-exists-p full-path)
                         (json-read-file full-path)
                       (message "Skipping: %s (not found)" full-path)
