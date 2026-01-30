@@ -40,11 +40,7 @@ Emacs has a developer problem. NeoVim is very well maintained compared to Emacs.
 
 https://github.com/user-attachments/assets/086be2f5-3d9d-4145-a1ba-bc72f48f83fa
 
-## Tabstops
-
-https://github.com/user-attachments/assets/f08701eb-71ce-4882-b455-8a71f3146833
-
-## Placeholders
+## Tabstops and Placeholders
 
 
 https://github.com/user-attachments/assets/2081fd57-a02d-4505-93ea-7eee52858601
