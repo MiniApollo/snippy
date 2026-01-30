@@ -1,6 +1,6 @@
 ;;; snippy.el --- Vscode snippets support for Emacs  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2025 Mark Surmann
+;; Copyright (C) 2026 Mark Surmann
 ;; Keywords: snippet
 ;; Package-Requires: ((emacs "25.1") )
 ;; Version: 0.1.0
@@ -17,6 +17,8 @@
 ;; Add all languages like cdoc
 ;; Allow adding vars to languages to include always
 ;; Add custom dir support
+;; Add licence to file top GPLV3
+
 ;; FIXME:
 ;; To many messages in global minor mode
 
@@ -457,5 +459,6 @@ Works even with an empty prefix/string."
           ,(completion-table-with-cache
             (lambda (input) (snippy-capf-candidates input)))
           ,@snippy-capf-properties)))))
+
 (provide 'snippy)
 ;;; snippy.el ends here
