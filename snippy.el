@@ -220,9 +220,14 @@
   :group 'snippy)
 
 (defun snippy--turn-on ()
-  "Enable `snippy-minor-mode` in the current buffer."
-  ;; You can add logic here to exclude certain buffers (like minibuffers)
-  (unless (minibufferp)
+  "Enable `snippy-minor-mode` in appropriate buffers."
+  (when (and (not (minibufferp))
+             ;; Ensure there is an actual file or a major mode set
+             (not (derived-mode-p 'special-mode))
+             (not (derived-mode-p 'tags-table-mode))
+             ;; Optional: Only enable if a package.json exists in the project
+             ;; (locate-dominating-file default-directory "package.json")
+             )
     (snippy-minor-mode 1)))
 
 ;; Get language paths
