@@ -12,8 +12,13 @@
 ;;; Code:
 
 ;; TODO
-;; Multi language support
 ;; Auto download of friendly-snippets or changed repo with var
+;; Multi language support
+;; Add all languages like cdoc
+;; Allow adding vars to languages to include always
+;; Add custom dir support
+;; FIXME:
+;; To many messages in global minor mode
 
 ;; Not very interesting
 ;; Variable-Transform
