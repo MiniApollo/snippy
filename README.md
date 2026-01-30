@@ -55,13 +55,15 @@ https://github.com/user-attachments/assets/8938890f-2b31-4c4d-8332-3110f2707010
 # Installation
 ```elisp
 (use-package snippy
+    :vc (:url "https://github.com/MiniApollo/snippy.git"
+              :branch "main")
     :hook (after-init . global-snippy-minor-mode)
     :custom 
     (snippy-global-languages '("global")) ;; Recomended
     ;; Optional 
     ;; (snippy-install-dir (expand-file-name <Your location>))
     ;; Use different snippet collections
-    ;; (snippy-source '("Your git repo" . "my-snippets-dir"))) ;; Optional
+    ;; (snippy-source '("Your git repo" . "my-snippets-dir")) ;; Optional
     :config 
     (snippy-install-or-update-snippets) ;; Autoupdate git repo
     (add-hook 'completion-at-point-functions #'snippy-capf)) ;; Or merge them with Yasnippet or eglot capf
