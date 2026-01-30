@@ -1,108 +1,49 @@
-#+Title: Hogyan működik
+#+Title: Development Docs
 #+AUTHOR: MiniApollo5935
 #+Startup: showeverything
 #+Options: toc:2
 
-
-* Tartalom jegyzék :toc:
+* Table of Contents :toc:
 - [[#why-use-this][Why use this:]]
-- [[#részei][Részei]]
-- [[#teljes-működése][Teljes működése]]
-- [[#snippet-beolvasása][Snippet beolvasása]]
-- [[#snippet-keresése][Snippet keresése]]
-- [[#snippet-expand][Snippet expand]]
+- [[#links][Links]]
   - [[#vscode][Vscode:]]
-  - [[#cursor-jump-variables-and-choices][Cursor jump, variables and choices]]
-- [[#terv][Terv]]
-- [[#fav-snippets][Fav snippets]]
+- [[#program-structure][Program Structure]]
+- [[#favorite-snippets][Favorite snippets]]
+- [[#hacks][Hacks]]
+- [[#dev-variables-functions][Dev variables, functions]]
 
 * Why use this:
 Snippets are underdeveloped in Emacs:
-yasnippet and tempel don't have a well maintained snippet collections.
+Yasnippet and Tempel don't have a well maintained snippet collections.
 Both use their own custom format. I want to use snippets that everybody uses not just Emacs users.
-Emacs has a developer problem. Not enough developers.
+Emacs has a developer problem. NeoVim is very well maintained compared to Emacs.
 
-* Részei
-Három rész
-- Snippetek beolvasása
-- Snippet kikeresése
-- Snippet expand
+* Links
+Specification
+https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#snippet_syntax
 
-
-* Teljes működése
-- Main entry snippet Expand
-- Megkapunk egy input string-et
-- Kikeressük a current mode-ot
-- Megkapjuk a json path
-- Read json file
-- Megkeresni a prefix-et
-- Lementeni a body-t
-- Insert Végigmenni soronként a body-n
-- + cursor jump
-
-
-* Snippet beolvasása
-1. Megkapni a mostani módot amit remap ami a friendlyben van
-2. Megkapni a path
-3. Beolvasni
-
-* Snippet keresése
-Végig menni és megkeresni a prefix alapján melyik egyezik
-Lementeni a body részt
-
-* Snippet expand
-végig menni soronként a string listán és rakni mindegyik végén egy \n
-Meg majd még cursor jumps
-https://github.com/L3MON4D3/LuaSnip/blob/master/DOC.md
 TJ
 https://www.youtube.com/watch?v=Dn800rlPIho
 https://www.youtube.com/watch?v=aNWx-ym7jjI
 
-https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#snippet_syntax
 ** Vscode:
-Code:
+- Code:
 https://github.com/microsoft/vscode/tree/6b921dda5c679c6ca1928a4505567c533ede72f9/src/vs/editor/contrib/snippet/browser
-
 Docs:
-https://github.com/microsoft/vscode/blob/6b921dda5c679c6ca1928a4505567c533ede72f9/src/vs/editor/contrib/snippet/browser/snippet.md
-
-** Cursor jump, variables and choices
-${1:foo} $1
-Cursor jumps $1
-Vannak változók is amik linkelve vannak: Tehát az első $1 megadtuk akkor a többit is átírja egyszerre.
+- https://github.com/microsoft/vscode/blob/6b921dda5c679c6ca1928a4505567c533ede72f9/src/vs/editor/contrib/snippet/browser/snippet.md
 
 https://code.visualstudio.com/docs/editing/userdefinedsnippets#_placeholders
-#+begin_src js
-    "for argv[]": {
-        "prefix": "fora",
-        "body": ["for (int ${1:i} = ${2:1}; $1 < argc; $1++) {$0", "}"],
-        "description": "'for' loop for cmdline arguments"
-    },
-#+end_src
 
-Még vannak Choices is
-Amik közül lehet rotálni. Luansnip-ben C-e vel lehet görgetni közülök.
-pl.: css
-#+begin_src js
-    "align-self": {
-        "prefix": "as",
-        "body": "align-items: ${1|flex-start,flex-end,center,baseline,stretch,auto|};",
-        "description": "initial value: auto"
-    },
-#+end_src
-
-
-
-* Terv
-Read from package json location
-Get version
+* Program Structure
+- Read from package.json location
+- Get version and check it
 #+begin_src javascript
     "engines": {
         "vscode": "^1.11.0"
     },
 #+end_src
 
-The format
+- Read in language locations
 #+begin_src js
     "contributes": {
         "snippets": [
@@ -123,9 +64,31 @@ The format
             },
 #+end_src
 
+- Convert Emacs major mode to VSCode language identifier.
+- Search by languages. Get all Paths for languages.
+- Read all language snippets files.
+- Merge them together for search
+- When prefix given search for snippet
+- If found expand it
 
+Expansion:
+- Make into one line divided with \n
+- Remove duplicate placeholders (Yasnippet don't likes duplicates).
+- Convert choices to Yasnippet choices
+- Search for Variables (e.g Date, Time,)
+- Give it to yas-expand-snippet
 
-* Fav snippets
+* Favorite snippets
+Most generic: c
+(for argv[] (prefix . fora) (body . [for (int ${1:i} = ${2:1}; $1 < argc; $1++) {$0 }]) (description . 'for' loop for cmdline arguments))
+JSON:
+#+begin_src js
+    "for argv[]": {
+        "prefix": "fora",
+        "body": ["for (int ${1:i} = ${2:1}; $1 < argc; $1++) {$0", "}"],
+        "description": "'for' loop for cmdline arguments"
+    },
+#+end_src
 Choices: css
 (align-items (prefix . ai) (body . align-items: ${1|flex-start,flex-end,center,baseline,stretch,start,end,self-start,self-end|};) (description . initial value: stretch))
 JSON:
@@ -136,19 +99,12 @@ JSON:
         "description": "initial value: stretch"
     },
 #+end_src
-most generic: c
-(for argv[] (prefix . fora) (body . [for (int ${1:i} = ${2:1}; $1 < argc; $1++) {$0 }]) (description . 'for' loop for cmdline arguments))
-JSON:
-#+begin_src js
-    "for argv[]": {
-        "prefix": "fora",
-        "body": ["for (int ${1:i} = ${2:1}; $1 < argc; $1++) {$0", "}"],
-        "description": "'for' loop for cmdline arguments"
-    },
-#+end_src
 
+* Hacks
 Example multiple choices in yasnippet:
+$$ Needed for elisp evalution
 https://pragmaticemacs.wordpress.com/2017/06/25/multiple-choices-in-yasnippets/
+#+begin_src emacs-lisp
 # -*- mode: snippet -*-
 # name: align-items
 # key: ai
@@ -156,33 +112,12 @@ https://pragmaticemacs.wordpress.com/2017/06/25/multiple-choices-in-yasnippets/
 Importance: ${1:$$(yas-choose-value '("high" "average" "below average"))}
 Difficulty: ${2:$$(yas-choose-value '("easy" "hard"))}
 $0
-
-#+begin_src emacs-lisp
-    (setq string "align-items: ${5|flex-start,flex-end,center,baseline,stretch,start,end,self-start,self-end|};")
-    (message "%s"
-             (replace-regexp-in-string "\\${[0-9]|\\([^|]*\\)|}" "hello" string))
-#+end_src
-
-WORKING
-#+begin_src emacs-lisp
-(message "%s"
-         (replace-regexp-in-string
-          "\\${\\([0-9]+\\)|\\([^|]+\\)|}"
-          (lambda (match)
-            (save-match-data  ;; <--- Essential to protect the outer match
-              (let* ((index (match-string 1 match))
-                     (choice-str (match-string 2 match))
-                     (choices (split-string choice-str "," t "[ \t\n\r]+"))
-                     (lisp-list (format "(quote (%s))"
-                                        (mapconcat #'prin1-to-string choices " "))))
-                (format "${%s:$$(yas-choose-value %s)}" index lisp-list))))
-          string
-          t t))
 #+end_src
 
 Yasnippet don't like this:
 It goes to the last one:
-#+begin_src
+So we replace all duplicates and leave only one.
+#+begin_src js
 # -*- mode: snippet -*-
 # name: For Loop
 # key: for
@@ -192,3 +127,27 @@ for (let ${1:index} = 0; ${1:index} < ${2:array}.length; ${1:index}++) {
     $0
 }
 #+end_src
+
+* Dev variables, functions
+Variables
+- snippy--min-vscode-version
+- snippy-package-json-content
+- snippy--buffer-language
+- snippy--merged-snippets
+- snippy-capf-properties
+
+Functions:
+- snippy--get-snippet-dir
+- snippy-get-package-data
+- snippy--clean-version
+- snippy-check-engine-version
+- snippy--get-vscode-language-name
+- snippy--update-buffer-language
+- snippy--get-all-snippets-paths
+- snippy--turn-on
+- snippy--get-all-paths-for-language
+- snippy--get-current-language-path
+- snippy--find-snippet-by-prefix
+- snippy--get-variable-value
+- snippy--doc-buffer
+- snippy-capf-candidates
