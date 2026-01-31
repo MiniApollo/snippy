@@ -64,7 +64,7 @@ https://github.com/user-attachments/assets/8938890f-2b31-4c4d-8332-3110f2707010
   ;; Optional
   ;; (snippy-install-dir (expand-file-name <Your location>))
   ;; Use different snippet collections
-  ;; (snippy-source '("Your git repo" . "my-snippets-dir")) ;; Optional
+  ;; (snippy-source '("Your git repo" . "my-snippets-dir"))
   :config
   (snippy-install-or-update-snippets) ;; Autoupdate git repo
   (add-hook 'completion-at-point-functions #'snippy-capf)) ;; Or merge them with Yasnippet or eglot capf
