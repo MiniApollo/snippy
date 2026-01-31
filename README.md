@@ -19,7 +19,7 @@ https://github.com/user-attachments/assets/659158b0-562a-4d51-8393-70f20d974226
 
 Translates VSCode/LSP snippets and expands them with Yasnippet.
 
-Perfect for users who find yasnippet-collection too limited and want access to the vast ecosystem of modern editor templates.
+Perfect for users who find yasnippet-snippets too limited and want access to the vast ecosystem of modern editor templates.
 
 Default Snippets collection is [Friendly Snippets](https://github.com/rafamadriz/friendly-snippets "Default Snippets collection")
 
