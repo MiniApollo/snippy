@@ -8,7 +8,7 @@
 ;; Keywords: snippet
 ;; Package-Requires: ((emacs "26.1") (yasnippet "0.14.0"))
 ;; Version: 0.1.0
-;; URL: https://example.com/foo
+;; URL: https://github.com/MiniApollo/snippy
 
 ;; This file is not part of GNU Emacs.
 
@@ -295,6 +295,7 @@
 ;; (message "Result for C: %s" (snippy--get-all-paths-for-language snippy--get-all-snippets-paths "cpp"))
 ;; (message "Result for Markdown: %s" (snippy--get-all-paths-for-language snippy--get-all-snippets-paths "rust"))
 
+;; Read all language snippets files
 (defun snippy--get-current-language-path ()
   "Returns a combined list of snippet paths for all languages"
   (let ((all-snippet-dirs (snippy--get-all-snippets-paths)))
