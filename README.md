@@ -23,16 +23,6 @@ Perfect for users who find yasnippet-snippets too limited and want access to the
 
 Default Snippets collection is [Friendly Snippets](https://github.com/rafamadriz/friendly-snippets "Default Snippets collection")
 
-## Why use this:
-Snippets are underdeveloped in Emacs:
-
-Yasnippet and Tempel don't have a well maintained snippet collections.
-
-Both use their own custom format. I want to use snippets that everybody uses not just Emacs users.
-
-Emacs has a developer problem. NeoVim is very well maintained compared to Emacs.
-
-
 <a id="Features"></a>
 # Features
 [Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#snippet_syntax)
