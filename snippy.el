@@ -456,6 +456,7 @@
   "Generate a documentation buffer for snippet CAND."
   (when-let* ((snippet (get-text-property 0 'snippy-snippet cand))
               (body-raw (cdr (assoc 'body snippet)))
+              (desc (get-text-property 0 'snippy-desc cand))
               (mode major-mode))
     (with-current-buffer (get-buffer-create "*snippy-doc*")
       (erase-buffer)
@@ -463,15 +464,18 @@
                             ((stringp body-raw) body-raw)
                             (t ""))))
         (insert "Expands to:\n\n" body-str)
-        ;; Simple font-lock based on the current buffer's mode
+        (when desc
+          (insert "\n" (make-string 20 ?-) "\n" desc))
         (delay-mode-hooks (funcall mode))
         (ignore-errors (font-lock-ensure))
         (current-buffer)))))
 
 (defvar snippy-capf-properties
   (list :annotation-function (lambda (cand)
-                               (let ((desc (get-text-property 0 'snippy-desc cand)))
-                                 (if desc (format " -- %s" desc) " (Snippet)")))
+                               (let ((name (get-text-property 0 'snippy-name cand)))
+                                 (if name
+                                     (format "  %s" name)
+                                   "  Snippet")))
         :company-kind (lambda (_) 'snippet)
         :company-doc-buffer #'snippy--doc-buffer
         :exit-function (lambda (cand _status)
@@ -485,14 +489,15 @@
 (defun snippy-capf-candidates (prefix)
   "Return a list of candidates from Snippy propertized with metadata."
   (let (candidates)
-    (pcase-dolist (`(,_name . ,data) snippy--merged-snippets)
+    (pcase-dolist (`(,name . ,data) snippy--merged-snippets)
       (let ((p (cdr (assoc 'prefix data)))
             (desc (cdr (assoc 'description data))))
         (dolist (key (if (listp p) p (if (vectorp p) (append p nil) (list p))))
           (when (string-prefix-p prefix key t)
             (push (propertize key
-                             'snippy-desc desc
-                             'snippy-snippet data)
+                              'snippy-name (format "%s" name)
+                              'snippy-desc desc
+                              'snippy-snippet data)
                   candidates)))))
     (delete-dups candidates)))
 
@@ -511,9 +516,9 @@ Works even with an empty prefix/string."
              (start (or (car bnd) (point)))
              (end (or (cdr bnd) (point))))
         `(,start ,end
-          ,(completion-table-with-cache
-            (lambda (input) (snippy-capf-candidates input)))
-          ,@snippy-capf-properties)))))
+                 ,(completion-table-with-cache
+                   (lambda (input) (snippy-capf-candidates input)))
+                 ,@snippy-capf-properties)))))
 
 (provide 'snippy)
 ;;; snippy.el ends here
