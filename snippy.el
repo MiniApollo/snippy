@@ -5,7 +5,7 @@
 ;; Author: Mark Surmann <overmilord62@gmail.com>
 ;; Created: 28 Jan 2026
 
-;; Keywords: snippet
+;; Keywords: convenience, emulation
 ;; Package-Requires: ((emacs "26.1") (yasnippet "0.14.0"))
 ;; Version: 1.1.2
 ;; URL: https://github.com/MiniApollo/snippy
