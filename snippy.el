@@ -7,7 +7,7 @@
 
 ;; Keywords: snippet
 ;; Package-Requires: ((emacs "26.1") (yasnippet "0.14.0"))
-;; Version: 0.1.0
+;; Version: v1.1.1
 ;; URL: https://github.com/MiniApollo/snippy
 
 ;; This file is not part of GNU Emacs.
