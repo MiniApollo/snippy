@@ -33,8 +33,8 @@
 
 ;; TODO
 ;; Add to docs how to modify this list to add custom languages
-;; Fix yasnippet jumping. Use the fixer function on the yasnippets
-
+;; Fix yasnippet jumping. Use the fixer function in yasnippets snippets.
+;; Do some rewrites.
 
 ;;; ============================================================================
 ;;; Dependencies
@@ -93,7 +93,7 @@
 
 (defun snippy-install-or-update-snippets ()
   "Install or update snippet git repo in snippy-install-dir.
-          If snippy-install-dir is nil, it defaults to `user-emacs-directory`."
+  If snippy-install-dir is nil, it defaults to `user-emacs-directory`."
   (interactive)
   (let* ((base (or snippy-install-dir user-emacs-directory))
          (dest (expand-file-name (cdr snippy-source) base)))
@@ -101,8 +101,8 @@
         (let ((default-directory dest))
           (message "Pulling updates in %s..." dest)
           (start-process "Snippy-git-pull" nil "git" "pull"))
-      (message "Cloning %s to %s..." (cdr snippy-source) dest)
-      (vc-clone (car snippy-source) 'Git dest))))
+      (message "Cloning %s to %s..." (car snippy-source) dest)
+      (start-process "Snippy-git-clone" nil "git" "clone" (car snippy-source) dest))))
 
 (defun snippy-get-package-data ()
   "Read and parse the package.json file."
@@ -110,7 +110,6 @@
     (if (file-exists-p file)
         (setq snippy-package-json-content (json-read-file file))
       (error "Could not find package.json in %s" (snippy--get-snippet-dir)))))
-
 
 ;;; ============================================================================
 ;;; Vscode engine check
