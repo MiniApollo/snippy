@@ -125,18 +125,18 @@
         (match-string 1 version)
       version)))
 
-(defun snippy-check-engine-version()
-  (let* ((current-engine-version
-          (snippy--clean-version (alist-get 'vscode (alist-get 'engines snippy-package-json-content)))))
+(defun snippy-check-engine-version ()
+  "Check if the current VSCode engine version meets the minimum requirement."
+  (let ((current-engine-version
+         (snippy--clean-version (alist-get 'vscode (alist-get 'engines snippy-package-json-content)))))
     (cond
      ((null current-engine-version)
-      (message "Snippy: Could not determine VSCode version from package.json."))
-     ((version<= snippy--min-vscode-version current-engine-version)
-      (message "Snippy: Version check passed %s" current-engine-version))
-     (t
-      (warn "Snippy: VSCode version %s is below requirement %s"
-            current-engine-version snippy--min-vscode-version)))
-    ))
+      (lwarn 'snippy :warning
+             "Snippy: Could not determine VSCode version from package.json."))
+     ((version< current-engine-version snippy--min-vscode-version)
+      (lwarn 'snippy :warning
+             "VSCode version %s is below requirement %s. Some features may not work."
+             current-engine-version snippy--min-vscode-version)))))
 
 ;;; ============================================================================
 ;;; Language Remap
