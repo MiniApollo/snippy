@@ -259,7 +259,6 @@
          (match (assoc target-mode snippy-emacs-to-vscode-lang-alist)))
     (if match
         (cdr match)
-      (message "No VS Code mapping found for %s" target-mode)
       nil)))
 
 (defun snippy--update-buffer-language ()
