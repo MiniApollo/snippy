@@ -6,7 +6,7 @@
 ;; Created: 28 Jan 2026
 
 ;; Keywords: convenience, emulation
-;; Package-Requires: ((emacs "26.1") (yasnippet "0.14.0"))
+;; Package-Requires: ((emacs "30.1") (yasnippet "0.14.0"))
 ;; Version: 1.1.2
 ;; URL: https://github.com/MiniApollo/snippy
 
@@ -31,8 +31,21 @@
 
 ;;; Code:
 
+;; TODO
+;; Add to docs how to modify this list to add custom languages
+;; Fix yasnippet jumping. Use the fixer function on the yasnippets
+
+
+;;; ============================================================================
+;;; Dependencies
+;;; ============================================================================
+
 (require 'seq)
 (require 'yasnippet)
+
+;;; ============================================================================
+;;; Customization
+;;; ============================================================================
 
 (defgroup snippy nil
   "Custom snippet management utilities."
@@ -49,10 +62,6 @@
                (string :tag "Directory Name"))
   :group 'snippy)
 
-(defun snippy--get-snippet-dir ()
-  "Return snippet directory"
-  (expand-file-name (cdr snippy-source) snippy-install-dir))
-
 (defcustom snippy-global-languages nil
   "List of languages to enable globally across all major modes."
   :type '(repeat string)
@@ -61,8 +70,26 @@
 (defconst snippy--min-vscode-version "1.11.0"
   "The minimum VSCode engine version required.")
 
+;;; ============================================================================
+;;; Internal Variables
+;;; ============================================================================
+
 (defvar snippy-package-json-content nil
-  "Package json file content")
+  "Package json file content parsed as an alist.")
+
+(defvar-local snippy--buffer-language nil
+  "The language currently used by snippy in the local buffer.")
+
+(defvar-local snippy--merged-snippets nil
+  "A merged alist of all snippets found in the snippets files.")
+
+;;; ============================================================================
+;;; Setup & Version Checking
+;;; ============================================================================
+
+(defun snippy--get-snippet-dir ()
+  "Return snippet directory"
+  (expand-file-name (cdr snippy-source) snippy-install-dir))
 
 (defun snippy-install-or-update-snippets ()
   "Install or update snippet git repo in snippy-install-dir.
@@ -84,7 +111,11 @@
         (setq snippy-package-json-content (json-read-file file))
       (error "Could not find package.json in %s" (snippy--get-snippet-dir)))))
 
-;; Vscode engine check
+
+;;; ============================================================================
+;;; Vscode engine check
+;;; ============================================================================
+
 (defun snippy--clean-version (version)
   "Extract a clean semver string from VERSION, removing ^ or ~."
   (when (stringp version)
@@ -104,6 +135,10 @@
       (warn "Snippy: VSCode version %s is below requirement %s"
             current-engine-version snippy--min-vscode-version)))
     ))
+
+;;; ============================================================================
+;;; Language Remap
+;;; ============================================================================
 
 (defvar snippy-emacs-to-vscode-lang-alist
   '((text-mode . "plaintext")
@@ -216,15 +251,6 @@
     (zig-ts-mode . "zig"))
   "Alist mapping Emacs major modes to VS Code language identifiers.")
 
-;; Read in by language
-;; Snippets
-(defvar-local snippy--buffer-language nil
-  "The language currently used by snippy in the local buffer.")
-
-;; Read in snippets
-(defvar-local snippy--merged-snippets nil
-  "A merged alist of all snippets found in the snippets files")
-
 (defun snippy--get-vscode-language-name (&optional mode)
   "Return the VS Code language string for MODE (defaults to current `major-mode`)."
   (let* ((target-mode (or mode major-mode))
@@ -239,58 +265,14 @@
   (setq snippy--buffer-language
         (cons (snippy--get-vscode-language-name) snippy-global-languages)))
 
+;;; ============================================================================
+;;; Snippet Reading & Parsing
+;;; ============================================================================
+
 (defun snippy--get-all-snippets-paths ()
   "Returns the snippets paths in package.json file for all languages"
   (alist-get 'snippets (alist-get 'contributes snippy-package-json-content)))
 
-;;  (snippy-get-package-data)
-;;  (snippy-check-engine-version)
-;; (message "%s" (snippy--get-all-snippets-paths))
-
-;;;###autoload
-(define-minor-mode snippy-minor-mode
-  "Toggle snippy in the current buffer"
-  :group 'snippy
-  (if snippy-minor-mode
-      ;; Logic when the mode is TURNED ON
-      (condition-case err
-          (progn
-            (snippy-get-package-data)
-            (snippy-refresh-snippets)
-            (when (called-interactively-p 'any)
-              (progn (snippy-check-engine-version)
-                     (message "Snippy minor mode enabled in current buffer"))))
-        (error
-         (setq snippy-minor-mode nil)
-         (error "Failed to enable Snippy mode: %s" (error-message-string err))))
-    ;; Logic when the mode is TURNED OFF
-    (setq snippy-package-json-content nil
-          snippy--buffer-language nil
-          snippy--merged-snippets nil)
-    (when (called-interactively-p 'any)
-      (message "Snippy minor mode disabled in current buffer"))))
-
-
-;;;###autoload
-(define-globalized-minor-mode global-snippy-minor-mode
-  snippy-minor-mode
-  snippy--turn-on
-  :group 'snippy
-  (if global-snippy-minor-mode
-      (progn (snippy-check-engine-version)
-             (message "Global Snippy mode enabled"))
-    (message "Global Snippy mode disabled")))
-
-(defun snippy--turn-on ()
-  "Enable `snippy-minor-mode` only in file-visiting programming or text buffers."
-  (when (and (not (minibufferp))
-             ;; Only enable in "real" content buffers (Prog or Text)
-             (derived-mode-p 'prog-mode 'text-mode)
-             ;; Prevent infinite loops or redundant checks
-             (not snippy-minor-mode))
-    (snippy-minor-mode t)))
-
-;; Get language paths
 (defun snippy--get-all-paths-for-language (my-snippet-data target-lang)
   "Return a list of all paths associated with TARGET-LANG."
   (let ((target (if (symbolp target-lang) (symbol-name target-lang) target-lang)))
@@ -306,11 +288,6 @@
             (string-equal (format "%s" val) target))))
       my-snippet-data))))
 
-; Test writeout
-;; (message "Result for C: %s" (snippy--get-all-paths-for-language snippy--get-all-snippets-paths "cpp"))
-;; (message "Result for Markdown: %s" (snippy--get-all-paths-for-language snippy--get-all-snippets-paths "rust"))
-
-;; Read all language snippets files
 (defun snippy--get-current-language-path ()
   "Returns a combined list of snippet paths for all languages"
   (let ((all-snippet-dirs (snippy--get-all-snippets-paths)))
@@ -334,9 +311,7 @@
                       (message "Skipping: %s (not found)" full-path)
                       nil))) ; Ensure we return nil for mapcan if file missing
                 (snippy--get-current-language-path))))
-;; (message "%s" snippy--merged-snippets)
 
-;; Search for snippet
 (defun snippy--find-snippet-by-prefix (prefix snippets)
   "Return the first snippet entry where the prefix matches PREFIX."
   (seq-find (lambda (snippet)
@@ -352,16 +327,9 @@
                  (t nil))))
             snippets))
 
-;; Expand Snippet
-(defun snippy-expand (prefix)
-  "Expand snippet by prefix"
-  (interactive "sEnter snippet prefix: ")
-  (unless (featurep 'yasnippet)
-    (user-error "Yasnippet is not loaded. Please install or require it first"))
-  (unless (bound-and-true-p yas-minor-mode)
-    (yas-minor-mode t))
-  ;; (message "%s" (snippy--find-snippet-by-prefix prefix snippy--merged-snippets))
-  (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix snippy--merged-snippets)))
+;;; ============================================================================
+;;; Snippet Expansion
+;;; ============================================================================
 
 (defun snippy--get-variable-value (var-name)
   "Resolves VS Code variables to their Emacs string values."
@@ -403,6 +371,7 @@
 
       ;; Fallback
       (_ nil))))
+
 
 (defun snippy-expand-snippet (snippet)
   "Convert VSCode snippets to Yasnippet and expand it"
@@ -450,8 +419,20 @@
 
     (yas-expand-snippet final-body)))
 
-;; CAPF
-;; From yasnippet-capf
+(defun snippy-expand (prefix)
+  "Expand snippet by prefix"
+  (interactive "sEnter snippet prefix: ")
+  (unless (featurep 'yasnippet)
+    (user-error "Yasnippet is not loaded. Please install or require it first"))
+  (unless (bound-and-true-p yas-minor-mode)
+    (yas-minor-mode t))
+  ;; (message "%s" (snippy--find-snippet-by-prefix prefix snippy--merged-snippets))
+  (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix snippy--merged-snippets)))
+
+;;; ============================================================================
+;;; Completion At Point (CAPF)
+;;; ============================================================================
+
 (defun snippy--doc-buffer (cand)
   "Generate a documentation buffer for snippet CAND."
   (when-let* ((snippet (get-text-property 0 'snippy-snippet cand))
@@ -523,6 +504,53 @@ Works even with an empty prefix/string."
                  ,(completion-table-with-cache
                    (lambda (input) (snippy-capf-candidates input)))
                  ,@snippy-capf-properties)))))
+
+;;; ============================================================================
+;;; Minor Modes
+;;; ============================================================================
+
+;;;###autoload
+(define-minor-mode snippy-minor-mode
+  "Toggle snippy in the current buffer"
+  :group 'snippy
+  (if snippy-minor-mode
+      ;; Logic when the mode is TURNED ON
+      (condition-case err
+          (progn
+            (snippy-get-package-data)
+            (snippy-refresh-snippets)
+            (when (called-interactively-p 'any)
+              (progn (snippy-check-engine-version)
+                     (message "Snippy minor mode enabled in current buffer"))))
+        (error
+         (setq snippy-minor-mode nil)
+         (error "Failed to enable Snippy mode: %s" (error-message-string err))))
+    ;; Logic when the mode is TURNED OFF
+    (setq snippy-package-json-content nil
+          snippy--buffer-language nil
+          snippy--merged-snippets nil)
+    (when (called-interactively-p 'any)
+      (message "Snippy minor mode disabled in current buffer"))))
+
+
+;;;###autoload
+(define-globalized-minor-mode global-snippy-minor-mode
+  snippy-minor-mode
+  snippy--turn-on
+  :group 'snippy
+  (if global-snippy-minor-mode
+      (progn (snippy-check-engine-version)
+             (message "Global Snippy mode enabled"))
+    (message "Global Snippy mode disabled")))
+
+(defun snippy--turn-on ()
+  "Enable `snippy-minor-mode` only in file-visiting programming or text buffers."
+  (when (and (not (minibufferp))
+             ;; Only enable in "real" content buffers (Prog or Text)
+             (derived-mode-p 'prog-mode 'text-mode)
+             ;; Prevent infinite loops or redundant checks
+             (not snippy-minor-mode))
+    (snippy-minor-mode t)))
 
 (provide 'snippy)
 ;;; snippy.el ends here
