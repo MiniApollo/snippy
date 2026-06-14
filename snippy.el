@@ -42,6 +42,8 @@
 
 (require 'seq)
 (require 'yasnippet)
+(require 'json)
+(require 'project)
 
 ;;; ============================================================================
 ;;; Customization
