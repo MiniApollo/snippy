@@ -107,11 +107,12 @@
       (start-process "Snippy-git-clone" nil "git" "clone" (car snippy-source) dest))))
 
 (defun snippy-get-package-data ()
-  "Read and parse the package.json file."
+  "Read and parse the package.json file.
+  Used for getting the snippet paths to read and the VScode engine version."
   (let ((file (expand-file-name "package.json" (snippy--get-snippet-dir))))
     (if (file-exists-p file)
         (setq snippy-package-json-content (json-read-file file))
-      (error "Could not find package.json in %s" (snippy--get-snippet-dir)))))
+      (user-error "Snippy: package.json not found. Run `M-x snippy-install-or-update-snippets' first"))))
 
 ;;; ============================================================================
 ;;; Vscode engine check
