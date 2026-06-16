@@ -41,7 +41,6 @@
 ;;; ============================================================================
 
 (require 'cl-lib)
-(require 'seq)
 (require 'yasnippet)
 (require 'json)
 (require 'project)
