@@ -301,13 +301,13 @@
   (interactive)
   (snippy--update-buffer-language)
   (setq snippy--merged-snippets
-        (mapcan (lambda (suffix)
-                  (let ((full-path (expand-file-name suffix (snippy--get-snippet-dir))))
-                    (if (file-exists-p full-path)
-                        (json-read-file full-path)
-                      (message "Skipping: %s (not found)" full-path)
-                      nil))) ; Ensure we return nil for mapcan if file missing
-                (snippy--get-current-language-path))))
+        (cl-loop with dir = (snippy--get-snippet-dir)
+                 for suffix in (snippy--get-current-language-path)
+                 for full-path = (expand-file-name suffix dir)
+                 if (file-exists-p full-path)
+                 append (json-read-file full-path)
+                 else
+                 do (message "Skipping: %s (not found)" full-path))))
 
 (defun snippy--find-snippet-by-prefix (prefix snippets)
   "Return the first snippet entry where the prefix matches PREFIX."
