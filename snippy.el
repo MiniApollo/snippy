@@ -307,18 +307,13 @@
 
 (defun snippy--find-snippet-by-prefix (prefix snippets)
   "Return the first snippet entry where the prefix matches PREFIX."
-  (seq-find (lambda (snippet)
-              (let* ((snippet-data (cdr snippet))
-                     (prefix-val (cdr (assoc 'prefix snippet-data))))
-                (cond
-                 ;; If it's a string, compare directly
-                 ((stringp prefix-val)
-                  (string= prefix-val prefix))
-                 ;; If it's a vector or list, check if the prefix is inside it
-                 ((sequencep prefix-val)
-                  (seq-contains-p prefix-val prefix))
-                 (t nil))))
-            snippets))
+  (cl-find-if (lambda (snippet)
+                (let ((target (alist-get 'prefix (cdr snippet))))
+                  (cond
+                   ((stringp target) (string= prefix target))
+                   ((vectorp target) (cl-position prefix target :test #'string=))
+                   ((listp target)   (member prefix target)))))
+              snippets))
 
 ;;; ============================================================================
 ;;; Snippet Expansion
