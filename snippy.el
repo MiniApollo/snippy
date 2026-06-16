@@ -276,11 +276,11 @@
   (when target-lang
     (let ((target (if (symbolp target-lang) (symbol-name target-lang) target-lang)))
       (cl-loop for entry across (or my-snippet-data [])
-               for val = (cdr (assoc 'language entry))
-               when (if (vectorp val)
-                        (cl-some (lambda (x) (string-equal (format "%s" x) target)) val)
-                      (string-equal (format "%s" val) target))
-               collect (cdr (assoc 'path entry))))))
+               for val = (alist-get 'language entry)
+               for val-strings = (mapcar (lambda (x) (if (symbolp x) (symbol-name x) x))
+                                         (if (vectorp val) (append val nil) (list val)))
+               when (member target val-strings)
+               collect (alist-get 'path entry)))))
 
 (defun snippy--get-all-snippets-paths ()
   "Returns the snippets paths in package.json file for all languages"
