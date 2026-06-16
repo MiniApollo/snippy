@@ -270,10 +270,6 @@
 ;;; Snippet Reading & Parsing
 ;;; ============================================================================
 
-(defun snippy--get-all-snippets-paths ()
-  "Returns the snippets paths in package.json file for all languages"
-  (alist-get 'snippets (alist-get 'contributes snippy-package-json-content)))
-
 (defun snippy--get-all-paths-for-language (my-snippet-data target-lang)
   "Return a list of all paths associated with TARGET-LANG."
   (let ((target (if (symbolp target-lang) (symbol-name target-lang) target-lang)))
@@ -288,6 +284,10 @@
             ;; If single value, format as string and compare
             (string-equal (format "%s" val) target))))
       my-snippet-data))))
+
+(defun snippy--get-all-snippets-paths ()
+  "Returns the snippets paths in package.json file for all languages"
+  (alist-get 'snippets (alist-get 'contributes snippy-package-json-content)))
 
 (defun snippy--get-current-language-path ()
   "Returns a combined list of snippet paths for all languages"
