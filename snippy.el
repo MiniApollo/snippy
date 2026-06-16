@@ -40,6 +40,7 @@
 ;;; Dependencies
 ;;; ============================================================================
 
+(require 'cl-lib)
 (require 'seq)
 (require 'yasnippet)
 (require 'json)
@@ -290,15 +291,10 @@
   (alist-get 'snippets (alist-get 'contributes snippy-package-json-content)))
 
 (defun snippy--get-current-language-path ()
-  "Returns a combined list of snippet paths for all languages"
-  (let ((all-snippet-dirs (snippy--get-all-snippets-paths)))
-    (if (listp snippy--buffer-language)
-        ;; If it's a list, map over it and flatten the results
-        (mapcan (lambda (lang)
-                  (snippy--get-all-paths-for-language all-snippet-dirs lang))
-                snippy--buffer-language)
-      ;; Fallback for a single string if necessary
-      (snippy--get-all-paths-for-language all-snippet-dirs snippy--buffer-language))))
+  "Returns a combined list of snippet paths for all languages."
+  (cl-loop with all-dirs = (snippy--get-all-snippets-paths)
+           for lang in (ensure-list snippy--buffer-language)
+           append (snippy--get-all-paths-for-language all-dirs lang)))
 
 (defun snippy-refresh-snippets ()
   "Force an update on the snippets for the current buffer."
