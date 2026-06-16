@@ -527,8 +527,7 @@ Works even with an empty prefix/string."
          (setq snippy-minor-mode nil)
          (error "Failed to enable Snippy mode: %s" (error-message-string err))))
     ;; Logic when the mode is TURNED OFF
-    (setq snippy-package-json-content nil
-          snippy--buffer-language nil
+    (setq snippy--buffer-language nil
           snippy--merged-snippets nil)
     (when (called-interactively-p 'any)
       (message "Snippy minor mode disabled in current buffer"))))
