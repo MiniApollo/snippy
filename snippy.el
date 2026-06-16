@@ -273,18 +273,14 @@
 
 (defun snippy--get-all-paths-for-language (my-snippet-data target-lang)
   "Return a list of all paths associated with TARGET-LANG."
-  (let ((target (if (symbolp target-lang) (symbol-name target-lang) target-lang)))
-    (seq-map
-     (lambda (entry) (cdr (assoc 'path entry)))
-     (seq-filter
-      (lambda (entry)
-        (let ((val (cdr (assoc 'language entry))))
-          (if (vectorp val)
-              ;; If vector, convert elements to strings and check
-              (seq-some (lambda (x) (string-equal (format "%s" x) target)) val)
-            ;; If single value, format as string and compare
-            (string-equal (format "%s" val) target))))
-      my-snippet-data))))
+  (when target-lang
+    (let ((target (if (symbolp target-lang) (symbol-name target-lang) target-lang)))
+      (cl-loop for entry across (or my-snippet-data [])
+               for val = (cdr (assoc 'language entry))
+               when (if (vectorp val)
+                        (cl-some (lambda (x) (string-equal (format "%s" x) target)) val)
+                      (string-equal (format "%s" val) target))
+               collect (cdr (assoc 'path entry))))))
 
 (defun snippy--get-all-snippets-paths ()
   "Returns the snippets paths in package.json file for all languages"
