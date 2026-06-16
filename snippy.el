@@ -100,7 +100,7 @@
   (let* ((base (or snippy-install-dir user-emacs-directory))
          (dest (expand-file-name (cdr snippy-source) base)))
     (if (file-directory-p dest)
-        (let ((default-directory dest))
+        (progn
           (message "Pulling updates in %s..." dest)
           (start-process "Snippy-git-pull" nil "git" "pull"))
       (message "Cloning %s to %s..." (car snippy-source) dest)
