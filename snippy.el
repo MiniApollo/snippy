@@ -69,12 +69,12 @@
   :type '(repeat string)
   :group 'snippy)
 
-(defconst snippy--min-vscode-version "1.11.0"
-  "The minimum VSCode engine version required.")
-
 ;;; ============================================================================
 ;;; Internal Variables
 ;;; ============================================================================
+
+(defconst snippy--min-vscode-version "1.11.0"
+  "The minimum VSCode engine version required.")
 
 (defvar snippy-package-json-content nil
   "Package json file content parsed as an alist.")
