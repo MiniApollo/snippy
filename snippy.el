@@ -41,8 +41,8 @@
 ;;; ============================================================================
 
 (require 'cl-lib)
-(require 'yasnippet)
 (require 'json)
+(require 'yasnippet)
 (require 'project)
 
 ;;; ============================================================================
@@ -323,7 +323,9 @@
   (let ((file-name (buffer-file-name)))
     (pcase var-name
       ("TM_SELECTED_TEXT" (if (use-region-p) (buffer-substring-no-properties (region-beginning) (region-end)) ""))
-      ("TM_CURRENT_LINE" (thing-at-point 'line t))
+      ("TM_CURRENT_LINE" (or (and (thing-at-point 'line t)
+                                  (string-trim-right (thing-at-point 'line t) "\n"))
+                             ""))
       ("TM_CURRENT_WORD" (or (thing-at-point 'word t) ""))
       ("TM_LINE_INDEX" (number-to-string (1- (line-number-at-pos))))
       ("TM_LINE_NUMBER" (number-to-string (line-number-at-pos)))
@@ -333,7 +335,7 @@
       ("TM_DIRECTORY_BASE" (file-name-nondirectory (directory-file-name (if file-name (file-name-directory file-name) default-directory))))
       ("TM_FILEPATH" (or file-name ""))
       ("RELATIVE_FILEPATH" (if file-name (file-relative-name file-name) ""))
-      ("CLIPBOARD" (or (current-kill 0) ""))
+      ("CLIPBOARD" (if kill-ring (current-kill 0) ""))
       ("WORKSPACE_NAME" (if (project-current) (file-name-nondirectory (directory-file-name (project-root (project-current)))) "No Workspace"))
       ("WORKSPACE_FOLDER" (if (project-current) (project-root (project-current)) default-directory))
 
@@ -359,52 +361,49 @@
       ;; Fallback
       (_ nil))))
 
+(defun snippy--transform-snippet-body (body-str)
+  "Apply transformations to convert VSCode snippet syntax to Yasnippet."
+  (let ((result body-str))
+    ;; 1. Handle Variables ($VAR or ${VAR})
+    (setq result (replace-regexp-in-string
+                  "\\$\\([A-Z_]+\\)\\|\\${\\([A-Z_]+\\)}"
+                  (lambda (match)
+                    (let ((var-name (or (match-string 1 match)
+                                        (match-string 2 match))))
+                      (or (snippy--get-variable-value var-name) var-name)))
+                  result t t))
+
+    ;; 2. Handle Choices ${1|a,b|}
+    (setq result (replace-regexp-in-string
+                  "\\${\\([0-9]+\\)|\\([^|]+\\)|}"
+                  (lambda (match)
+                    (let* ((index (match-string 1 match))
+                           (choices (split-string (match-string 2 match) ","))
+                           (lisp-list (format "'(%s)" (mapconcat #'prin1-to-string choices " "))))
+                      (format "${%s:$$(yas-choose-value %s)}" index lisp-list)))
+                  result t t))
+
+    ;; 3. Handle Placeholders and Deduplication
+    (let ((seen-ids '()))
+      (setq result (replace-regexp-in-string
+                    "\\${\\([0-9]+\\):\\([^}]+\\)}"
+                    (lambda (match)
+                      (let* ((id (match-string 1 match))
+                             (default (match-string 2 match)))
+                        (if (member id seen-ids)
+                            (concat "$" id)
+                          (push id seen-ids)
+                          (format "${%s:%s}" id default))))
+                    result t t)))
+    result))
 
 (defun snippy-expand-snippet (snippet)
-  "Convert VSCode snippets to Yasnippet and expand it"
+  "Convert VSCode snippets to Yasnippet and expand it."
   (let* ((body-raw (cdr (assoc 'body snippet)))
-         ;; If it's a vector, join it. If it's already a string, use it.
          (body-str (cond ((vectorp body-raw) (mapconcat #'identity body-raw "\n"))
                          ((stringp body-raw) body-raw)
-                         (t "")))
-         ;; Remove duplicate placeholders.
-         ;; Yasnippet don't likes duplicates
-         (body-no-dups
-          (let ((seen-ids '()))
-            (replace-regexp-in-string
-             "\\${\\([0-9]+\\):[^}]+}"
-             (lambda (match)
-               (let ((id (match-string 1 match)))
-                 (if (member id seen-ids)
-                     (concat "$" id)     ; It's a duplicate, return just $N
-                   (push id seen-ids)    ; First time seeing this ID
-                   match)))              ; Keep the original ${N:default}
-             body-str t t)))         ;; Choices
-         ;; Convert ${1|a,b|} to ${1:$$(yas-choose-value '("a" "b"))}
-         (body-choices
-          (replace-regexp-in-string
-           "\\${\\([0-9]+\\)|\\([^|]+\\)|}"
-           (lambda (match)
-             (save-match-data  ;; <--- Essential to protect the outer match
-               (let* ((index (match-string 1 match))
-                      (choice-str (match-string 2 match))
-                      (choices (split-string choice-str ","))
-                      (lisp-list (format "'(%s)"
-                                         (mapconcat #'prin1-to-string choices " "))))
-                 (format "${%s:$$(yas-choose-value %s)}" index lisp-list))))
-           body-no-dups t t))
-         ;; Variables
-         (final-body
-          (replace-regexp-in-string
-           "\\${\\([A-Z_]+\\)}"
-           (lambda (match)
-             (let ((var-name (match-string 1 match)))
-               ;; Call your helper function.
-               ;; We use (or ... var-name) as a fallback if the function returns nil.
-               (or (snippy--get-variable-value var-name) var-name)))
-           body-choices t t)))
-
-    (yas-expand-snippet final-body)))
+                         (t ""))))
+    (yas-expand-snippet (snippy--transform-snippet-body body-str))))
 
 (defun snippy-expand (prefix)
   "Expand snippet by prefix"
