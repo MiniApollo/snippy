@@ -31,11 +31,6 @@
 
 ;;; Code:
 
-;; TODO
-;; Add to docs how to modify this list to add custom languages
-;; Fix yasnippet jumping. Use the fixer function in yasnippets snippets.
-;; Do some rewrites.
-
 ;;; ============================================================================
 ;;; Dependencies
 ;;; ============================================================================
@@ -142,6 +137,12 @@
 ;;; Language Remap
 ;;; ============================================================================
 
+;; TODO:
+;; Remove unreal engine snippets from default load
+;; Users should add them manually
+;; Rethink global and all languages position in fundemental mode
+;; Add to docs how to modify this list to add custom languages
+
 (defvar snippy-emacs-to-vscode-lang-alist
   '((text-mode . "plaintext")
     (markdown-mode . "markdown")
@@ -162,54 +163,82 @@
     (bibtex-mode . "bib")
     (bibtex-mode . "bibtex")
     (blade-mode . "blade")
+
+    ;; C / C++
     (c-mode . "c")
     (c-mode . "cdoc")
     (c-ts-mode . "c")
+    (c-ts-mode . "cdoc")
     (c++-mode . "cpp")
     (c++-mode . "cppdoc")
     (c++-mode . "unreal")
     (cpp-mode . "cpp")
     (c++-ts-mode . "cpp")
+    (c++-ts-mode . "cppdoc")
+    ;; (c++-ts-mode . "unreal")
+
+    ;; C#
     (csharp-mode . "csharp")
     (csharp-mode . "cs")
     (csharp-mode . "csharpdoc")
     (csharp-mode . "unity")
     (csharp-ts-mode . "csharp")
     (csharp-ts-mode . "cs")
+    (csharp-ts-mode . "csharpdoc")
+    ;; (csharp-ts-mode . "unity")
+
     (editorconfig-mode . "editorconfig")
     (git-commit-mode . "gitcommit")
     (git-commit-mode . "NeogitCommitMessage")
     (ejs-mode . "ejs")
     (eruby-mode . "eruby")
     (erlang-mode . "erlang")
+
+    ;; Elixir
     (elixir-mode . "elixir")
     (elixir-ts-mode . "elixir")
     (eelixir-mode . "eelixir")
     (heex-mode . "heex")
+
     (f90-mode . "fortran")
     (fortran-mode . "fortran")
     (glsl-mode . "glsl")
     (nix-mode . "nix")
+
+    ;; Lua
     (lua-mode . "lua")
     (lua-mode . "luadoc")
     (lua-ts-mode . "lua")
+    (lua-ts-mode . "luadoc")
+
     (go-mode . "go")
     (go-ts-mode . "go")
     (fennel-mode . "fennel")
+
+    ;; PHP
     (php-mode . "php")
     (php-mode . "phpdoc")
     (php-ts-mode . "php")
+    (php-ts-mode . "phpdoc")
+
     (quarto-mode . "quarto")
     (rescript-mode . "rescript")
+
+    ;; Ruby
     (ruby-mode . "ruby")
     (ruby-mode . "rails")
     (ruby-mode . "rdoc")
     (ruby-ts-mode . "ruby")
+    (ruby-ts-mode . "rails")
+    (ruby-ts-mode . "rdoc")
     (rspec-mode . "rspec")
+
+    ;; Rust
     (rust-mode . "rust")
     (rust-mode . "rustdoc")
     (rust-ts-mode . "rust")
     (rust-ts-mode . "rustdoc")
+
     (haskell-mode . "haskell")
     (haskell-ts-mode . "haskell")
     (scala-mode . "scala")
@@ -218,63 +247,98 @@
     (sql-mode . "sql")
     (verilog-mode . "systemverilog")
     (systemverilog-mode . "verilog")
+
+    ;; Shell / Bash
     (sh-mode . "shellscript")
     (sh-mode . "sh")
     (sh-mode . "shell")
     (sh-mode . "shelldoc")
     (sh-mode . "zsh")
     (bash-ts-mode . "shellscript")
+    (bash-ts-mode . "sh")
+    (bash-ts-mode . "shell")
+    (bash-ts-mode . "shelldoc")
+    (bash-ts-mode . "zsh")
+
     (plantuml-mode . "plantuml")
+
+    ;; Java
     (java-mode . "java")
     (java-mode . "java-testing")
     (java-mode . "javadoc")
     (java-ts-mode . "java")
+    (java-ts-mode . "java-testing")
+    (java-ts-mode . "javadoc")
+
     (julia-mode . "julia")
     (astro-mode . "astro")
     (astro-ts-mode . "astro")
     (clojure-mode . "clojure")
     (clojure-ts-mode . "clojure")
+
+    ;; CSS / Stylesheets
     (css-mode . "css")
     (css-ts-mode . "css")
     (scss-mode . "scss")
     (sass-mode . "sass")
     (less-css-mode . "less")
     (stylus-mode . "stylus")
+
+    ;; JavaScript / JSON
     (js-mode . "javascript")
     (js-mode . "jsdoc")
     (js2-mode . "javascript")
     (js-ts-mode . "javascript")
+    (js-ts-mode . "jsdoc")
     (js-json-mode . "javascript")
     (json-ts-mode . "javascript")
     (rjsx-mode . "javascriptreact")
+
+    ;; TypeScript
     (typescript-mode . "typescript")
     (typescript-mode . "jsdoc")
     (typescript-mode . "remix")
     (typescript-mode . "tsdoc")
     (typescript-ts-mode . "typescript")
+    (typescript-ts-mode . "jsdoc")
+    (typescript-ts-mode . "remix")
     (typescript-ts-mode . "tsdoc")
     (tsx-ts-mode . "typescriptreact")
+
     (terraform-mode . "terraform")
     (svelte-mode . "svelte")
     (vue-mode . "vue")
     (vue-ts-mode . "vue")
+
+    ;; Python
     (python-mode . "python")
     (python-mode . "django")
     (python-mode . "django-rest")
     (python-mode . "pydoc")
     (python-ts-mode . "python")
+    (python-ts-mode . "django")
+    (python-ts-mode . "django-rest")
+    (python-ts-mode . "pydoc")
+
     (cobol-mode . "cobol")
+
+    ;; Kotlin
     (kotlin-mode . "kotlin")
     (kotlin-mode . "kdoc")
     (kotlin-ts-mode . "kotlin")
+    (kotlin-ts-mode . "kdoc")
+
     (r-mode . "r")
     (ess-r-mode . "r")
     (rmarkdown-mode . "rmd")
     (org-mode . "org")
     (gdscript-mode . "gdscript")
     (gdscript-ts-mode . "gdscript")
+
+    ;; YAML
     (yaml-mode . "yaml")
     (yaml-ts-mode . "yaml")
+
     (makefile-mode . "make")
     (dart-mode . "dart")
     (dart-mode . "flutter")
@@ -282,8 +346,11 @@
     (tcl-mode . "tcl")
     (perl-mode . "perl")
     (vhdl-mode . "vhdl")
+
+    ;; Dockerfile
     (dockerfile-mode . "dockerfile")
     (dockerfile-ts-mode . "dockerfile")
+
     (powershell-mode . "powershell")
     (powershell-mode . "ps1")
     (reason-mode . "reason")
@@ -295,12 +362,17 @@
     (asciidoc-mode . "asciidoc")
     (beancount-mode . "beancount")
     (rst-mode . "rst")
+
+    ;; CMake
     (cmake-mode . "cmake")
     (cmake-ts-mode . "cmake")
+
+    ;; Zig
     (zig-mode . "zig")
     (zig-ts-mode . "zig")
+
     (dune-mode . "dune")
-    (dune-mode . "dune-project")
+    (dune-project-mode . "dune-project") ; Small fix for a potential typo in your source
     (edge-mode . "edge")
     (fsharp-mode . "fsh")
     (jade-mode . "jade")
