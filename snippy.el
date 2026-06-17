@@ -570,7 +570,7 @@
 ;;; ============================================================================
 
 (defun snippy--doc-buffer (cand)
-  "Generate a documentation buffer for snippet CAND."
+  "Generate a documentation buffer for snippet."
   (when-let* ((snippet (get-text-property 0 'snippy-snippet cand))
               (body-raw (cdr (assoc 'body snippet)))
               (mode major-mode))
@@ -608,7 +608,7 @@
   "Completion extra properties for Snippy.")
 
 (defun snippy-capf-candidates (prefix)
-  "Return a list of candidates from Snippy propertized with metadata."
+  "Return a list of candidates from Snippy with metadata."
   (let (candidates
         (case-fold-search (or completion-ignore-case case-fold-search)))
     (pcase-dolist (`(,name . ,data) snippy--merged-snippets)
@@ -628,9 +628,7 @@
 
 ;;;###autoload
 (defun snippy-capf (&optional interactive)
-  "Complete with snippy at point.
-If INTERACTIVE is non-nil, trigger completion immediately.
-Works even with an empty prefix/string."
+  "Complete with snippy at point."
   (interactive (list t))
   (if interactive
       (let ((completion-at-point-functions '(snippy-capf)))
