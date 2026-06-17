@@ -7,7 +7,7 @@
 
 ;; Keywords: convenience, emulation
 ;; Package-Requires: ((emacs "30.1") (yasnippet "0.14.0"))
-;; Version: 1.1.2
+;; Version: 2.0.0
 ;; URL: https://github.com/MiniApollo/snippy
 
 ;; This file is not part of GNU Emacs.
@@ -143,6 +143,22 @@
 ;; Rethink global and all languages position in fundemental mode
 ;; Add to docs how to modify this list to add custom languages
 
+;; Vars that are not part of it:
+;; (c++-mode . "unreal")
+;; (c++-ts-mode . "unreal")
+;; (csharp-mode . "unity")
+;; (csharp-ts-mode . "unity")
+;; (fundamental-mode . "all")
+;; (fundamental-mode . "global")
+;; (html-mode . "djangohtml")
+;; (html-mode . "htmldjango")
+;; (web-mode . "angular")
+;; (web-mode . "twig")
+;; (python-mode . "django")
+;; (python-mode . "django-rest")
+;; (python-ts-mode . "django")
+;; (python-ts-mode . "django-rest")
+
 (defvar snippy-emacs-to-vscode-lang-alist
   '((text-mode . "plaintext")
     (markdown-mode . "markdown")
@@ -154,12 +170,7 @@
     (html-mode . "html")
     (html-ts-mode . "html")
     (mhtml-mode . "html")
-    (html-mode . "djangohtml")
-    (html-mode . "htmldjango")
-    (fundamental-mode . "all")
-    (fundamental-mode . "global")
-    (web-mode . "angular")
-    (web-mode . "twig")
+    (web-mode . "html")
     (bibtex-mode . "bib")
     (bibtex-mode . "bibtex")
     (blade-mode . "blade")
@@ -171,21 +182,17 @@
     (c-ts-mode . "cdoc")
     (c++-mode . "cpp")
     (c++-mode . "cppdoc")
-    (c++-mode . "unreal")
     (cpp-mode . "cpp")
     (c++-ts-mode . "cpp")
     (c++-ts-mode . "cppdoc")
-    ;; (c++-ts-mode . "unreal")
 
     ;; C#
     (csharp-mode . "csharp")
     (csharp-mode . "cs")
     (csharp-mode . "csharpdoc")
-    (csharp-mode . "unity")
     (csharp-ts-mode . "csharp")
     (csharp-ts-mode . "cs")
     (csharp-ts-mode . "csharpdoc")
-    ;; (csharp-ts-mode . "unity")
 
     (editorconfig-mode . "editorconfig")
     (git-commit-mode . "gitcommit")
@@ -312,12 +319,8 @@
 
     ;; Python
     (python-mode . "python")
-    (python-mode . "django")
-    (python-mode . "django-rest")
     (python-mode . "pydoc")
     (python-ts-mode . "python")
-    (python-ts-mode . "django")
-    (python-ts-mode . "django-rest")
     (python-ts-mode . "pydoc")
 
     (cobol-mode . "cobol")
@@ -372,7 +375,7 @@
     (zig-ts-mode . "zig")
 
     (dune-mode . "dune")
-    (dune-project-mode . "dune-project") ; Small fix for a potential typo in your source
+    (dune-project-mode . "dune-project")
     (edge-mode . "edge")
     (fsharp-mode . "fsh")
     (jade-mode . "jade")
