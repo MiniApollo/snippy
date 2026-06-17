@@ -525,40 +525,35 @@ Works even with an empty prefix/string."
 ;;; Minor Modes
 ;;; ============================================================================
 
-(defun snippy--enable ()
-  "Initialization logic for `snippy-minor-mode`."
-  (condition-case err
-      (progn
-        (unless snippy-package-json-content
-          (snippy-get-package-data))
-        (snippy-refresh-snippets)
-        (when (called-interactively-p 'any)
-          (snippy-check-engine-version)
-          (message "Snippy minor mode enabled")))
-    (error
-     (snippy-minor-mode -1)
-     (message "Snippy: Failed to initialize: %s" (error-message-string err)))))
-
-(defun snippy--disable ()
-  "Cleanup logic for `snippy-minor-mode`."
-  (setq snippy--buffer-language nil
-        snippy--merged-snippets nil)
-  (when (called-interactively-p 'any)
-    (message "Snippy minor mode disabled")))
-
 ;;;###autoload
 (define-minor-mode snippy-minor-mode
   "Toggle snippy in the current buffer."
   :group 'snippy
   (if snippy-minor-mode
-      (snippy--enable)
-    (snippy--disable)))
+      (condition-case err
+          (progn
+            (unless snippy-package-json-content
+              (snippy-get-package-data))
+            (snippy-refresh-snippets)
+            (when (called-interactively-p 'any)
+              (snippy-check-engine-version)
+              (message "Snippy minor mode enabled")))
+        (error
+         (snippy-minor-mode -1)
+         (message "Snippy: Failed to initialize: %s" (error-message-string err))))
+    (setq snippy--buffer-language nil
+          snippy--merged-snippets nil)
+    (when (called-interactively-p 'any)
+      (message "Snippy minor mode disabled"))))
 
 (defun snippy--turn-on ()
   "Enable `snippy-minor-mode` only in file-visiting programming or text buffers."
-  (when (and buffer-file-name
-             (derived-mode-p 'prog-mode 'text-mode))
-    (snippy-minor-mode 1)))
+  (when (and (not (minibufferp))
+             ;; Only enable in "real" content buffers (Prog or Text)
+             (derived-mode-p 'prog-mode 'text-mode)
+             ;; Prevent infinite loops or redundant checks
+             (not snippy-minor-mode))
+    (snippy-minor-mode t)))
 
 ;;;###autoload
 (define-globalized-minor-mode global-snippy-minor-mode
