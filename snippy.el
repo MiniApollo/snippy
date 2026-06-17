@@ -537,7 +537,7 @@
 
 (defun snippy-expand-snippet (snippet)
   "Convert VSCode snippets to Yasnippet and expand it."
-  (let* ((body-raw (cdr (assoc 'body snippet)))
+  (let* ((body-raw (alist-get 'body snippet))
          (body-str (cond ((vectorp body-raw) (mapconcat #'identity body-raw "\n"))
                          ((stringp body-raw) body-raw)
                          (t ""))))
