@@ -553,32 +553,17 @@
   (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix snippy--merged-snippets)))
 
 ;;; ============================================================================
-;;; Yasnippet Fix
+;;; Yasnippet Eglot Fix
 ;;; ============================================================================
 
-(defun snippy--advise-yas-expand (orig-fun snippet &rest args)
-  "Intercept and transform SNIPPET on-the-fly"
-  (let ((transformed-body
-         (cond
-          ;; Case 1: Eglot/LSP sends a raw string snippet
-          ((stringp snippet)
-           (snippy--transform-snippet-body snippet))
-
-          ;; Case 2: Standard yasnippet expands a template object
-          ((and (vectorp snippet) (fboundp 'yas--template-content))
-           (let ((content (yas--template-content snippet)))
-             (if (stringp content)
-                 (snippy--transform-snippet-body content)
-               snippet)))
-
-          ;; Fallback: If it's something unexpected, leave it alone
-          (t snippet))))
-
-    ;; Pass the freshly transformed string (or fallback object) to the original function
+(defun snippy--fix-lsp-yasnippet (orig-fun snippet &rest args)
+  "Intercept and transform SNIPPET from Vscode style to yasnippet"
+  (let ((transformed-body (if (stringp snippet)
+                              (snippy--transform-snippet-body snippet)
+                            snippet)))
     (apply orig-fun transformed-body args)))
 
-;; Apply the advice globally
-(advice-add 'yas-expand-snippet :around #'snippy--advise-yas-expand)
+(advice-add 'yas-expand-snippet :around #'snippy--fix-lsp-yasnippet)
 
 ;;; ============================================================================
 ;;; Completion At Point (CAPF)
