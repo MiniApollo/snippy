@@ -486,12 +486,16 @@
 
 (defun snippy-capf-candidates (prefix)
   "Return a list of candidates from Snippy propertized with metadata."
-  (let (candidates)
+  (let (candidates
+        (case-fold-search (or completion-ignore-case case-fold-search)))
     (pcase-dolist (`(,name . ,data) snippy--merged-snippets)
       (let ((p (cdr (assoc 'prefix data)))
             (desc (cdr (assoc 'description data))))
-        (dolist (key (if (listp p) p (if (vectorp p) (append p nil) (list p))))
-          (when (string-prefix-p prefix key t)
+        ;; Normalize keys safely to a list structure
+        (dolist (key (cond ((listp p) p)
+                           ((vectorp p) (append p nil))
+                           (t (list p))))
+          (when (string-prefix-p prefix key case-fold-search)
             (push (propertize key
                               'snippy-name (format "%s" name)
                               'snippy-desc desc
@@ -510,7 +514,6 @@ Works even with an empty prefix/string."
         (or (completion-at-point) (user-error "No snippy completions at point")))
     (when snippy-minor-mode
       (let* ((bnd (bounds-of-thing-at-point 'symbol))
-             ;; If no symbol at point, use the current position for both start and end
              (start (or (car bnd) (point)))
              (end (or (cdr bnd) (point))))
         `(,start ,end
