@@ -412,8 +412,35 @@
     (user-error "Yasnippet is not loaded. Please install or require it first"))
   (unless (bound-and-true-p yas-minor-mode)
     (yas-minor-mode t))
-  ;; (message "%s" (snippy--find-snippet-by-prefix prefix snippy--merged-snippets))
   (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix snippy--merged-snippets)))
+
+;;; ============================================================================
+;;; Yasnippet Fix
+;;; ============================================================================
+
+(defun snippy--advise-yas-expand (orig-fun snippet &rest args)
+  "Intercept and transform SNIPPET on-the-fly"
+  (let ((transformed-body
+         (cond
+          ;; Case 1: Eglot/LSP sends a raw string snippet
+          ((stringp snippet)
+           (snippy--transform-snippet-body snippet))
+
+          ;; Case 2: Standard yasnippet expands a template object
+          ((and (vectorp snippet) (fboundp 'yas--template-content))
+           (let ((content (yas--template-content snippet)))
+             (if (stringp content)
+                 (snippy--transform-snippet-body content)
+               snippet)))
+
+          ;; Fallback: If it's something unexpected, leave it alone
+          (t snippet))))
+
+    ;; Pass the freshly transformed string (or fallback object) to the original function
+    (apply orig-fun transformed-body args)))
+
+;; Apply the advice globally
+(advice-add 'yas-expand-snippet :around #'snippy--advise-yas-expand)
 
 ;;; ============================================================================
 ;;; Completion At Point (CAPF)
