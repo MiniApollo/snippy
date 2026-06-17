@@ -511,10 +511,11 @@
     (setq result (replace-regexp-in-string
                   "\\${\\([0-9]+\\)|\\([^|]+\\)|}"
                   (lambda (match)
-                    (let* ((index (match-string 1 match))
-                           (choices (split-string (match-string 2 match) ","))
-                           (lisp-list (format "'(%s)" (mapconcat #'prin1-to-string choices " "))))
-                      (format "${%s:$$(yas-choose-value %s)}" index lisp-list)))
+                    (save-match-data
+                      (let* ((index (match-string 1 match))
+                             (choices (split-string (match-string 2 match) ","))
+                             (lisp-list (format "'(%s)" (mapconcat #'prin1-to-string choices " "))))
+                        (format "${%s:$$(yas-choose-value %s)}" index lisp-list))))
                   result t t))
 
     ;; 3. Handle Placeholders and Deduplication
