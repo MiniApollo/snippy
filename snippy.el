@@ -571,25 +571,26 @@
 
 (defun snippy--doc-buffer (cand)
   "Generate a documentation buffer for snippet."
-  (when-let* ((snippet (get-text-property 0 'snippy-snippet cand))
-              (body-raw (cdr (assoc 'body snippet)))
-              (mode major-mode))
+  (when-let* ((snippet  (get-text-property 0 'snippy-snippet cand))
+              (body-raw (alist-get 'body snippet))
+              (desc     (get-text-property 0 'snippy-desc cand))
+              (mode     major-mode))
     (with-current-buffer (get-buffer-create "*snippy-doc*")
       (let ((inhibit-read-only t)
-            (desc (get-text-property 0 'snippy-desc cand)))
+            (body-str (cond ((vectorp body-raw) (mapconcat #'identity body-raw "\n"))
+                            ((stringp body-raw) body-raw)
+                            (t ""))))
         (erase-buffer)
-        (let ((body-str (cond ((vectorp body-raw) (mapconcat #'identity body-raw "\n"))
-                              ((stringp body-raw) body-raw)
-                              (t ""))))
-          (insert "Expands to:\n\n" body-str)
-          (when (and desc (not (string-empty-p desc)))
-            (insert "\n" (make-string 20 ?-) "\n" desc))
+        (insert "Expands to:\n\n" body-str)
 
-          (delay-mode-hooks (funcall mode))
-          (ignore-errors (font-lock-ensure))
-          (setq-local cursor-type nil)
-          (read-only-mode 1)
-          (current-buffer))))))
+        (when (and desc (not (string-empty-p desc)))
+          (insert "\n" (make-string 20 ?-) "\n" desc))
+
+        (delay-mode-hooks (funcall mode))
+        (ignore-errors (font-lock-ensure))
+        (setq-local cursor-type nil)
+        (read-only-mode 1)
+        (current-buffer)))))
 
 (defvar snippy-capf-properties
   (list :annotation-function (lambda (cand)
@@ -612,12 +613,9 @@
   (let (candidates
         (case-fold-search (or completion-ignore-case case-fold-search)))
     (pcase-dolist (`(,name . ,data) snippy--merged-snippets)
-      (let ((p (cdr (assoc 'prefix data)))
-            (desc (cdr (assoc 'description data))))
-        ;; Normalize keys safely to a list structure
-        (dolist (key (cond ((listp p) p)
-                           ((vectorp p) (append p nil))
-                           (t (list p))))
+      (let ((p    (alist-get 'prefix data))
+            (desc (alist-get 'description data)))
+        (dolist (key (if (stringp p) (list p) (append p nil)))
           (when (string-prefix-p prefix key case-fold-search)
             (push (propertize key
                               'snippy-name (format "%s" name)
