@@ -613,9 +613,9 @@
   (let (candidates
         (case-fold-search (or completion-ignore-case case-fold-search)))
     (pcase-dolist (`(,name . ,data) snippy--merged-snippets)
-      (let ((p    (alist-get 'prefix data))
+      (let ((pref (alist-get 'prefix data))
             (desc (alist-get 'description data)))
-        (dolist (key (if (stringp p) (list p) (append p nil)))
+        (dolist (key (if (stringp pref) (list pref) (append pref nil)))
           (when (string-prefix-p prefix key case-fold-search)
             (push (propertize key
                               'snippy-name (format "%s" name)
