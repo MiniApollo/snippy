@@ -17,9 +17,10 @@ https://github.com/user-attachments/assets/659158b0-562a-4d51-8393-70f20d974226
 <a id="Introduction"></a>
 # Introduction
 
-Translates VSCode/LSP snippets and expands them with Yasnippet.
-
-Perfect for users who find yasnippet-snippets too limited and want access to the vast ecosystem of modern editor templates.
+Snippy is a snippet tranlation and completion engine that uses yasnippet under the hood.
+This package translates LSP/VSCode-style snippets into YASnippet format allowing you to use all modern, external snippets seamlessly.
+Since YASnippet doesn't fully support the entire LSP specification.
+It can optionally fix LSP snippets that Eglot retrieves from servers (e.g java), working alongside YASnippet so you can use both simultaneously.
 
 Default Snippets collection is [Friendly Snippets](https://github.com/rafamadriz/friendly-snippets "Default Snippets collection")
 
@@ -51,15 +52,17 @@ https://github.com/user-attachments/assets/c430debd-9a1d-4f0f-9085-0a8ad30e12ab
 
 https://github.com/user-attachments/assets/8938890f-2b31-4c4d-8332-3110f2707010
 
+## Fix LSP server snippets
+
+
+Enable: snippy-fix-lsp-snippet-mode
 
 
 <a id="Installation"></a>
 # Installation
 ```elisp
 (use-package snippy
-  :vc (:url "https://github.com/MiniApollo/snippy.git"
-            :branch "main"
-            :rev :newest)
+  :vc (:url "https://github.com/MiniApollo/snippy.git")
   :hook (after-init . global-snippy-minor-mode)
   :custom
   (snippy-global-languages '("global")) ;; Recomended
@@ -69,6 +72,7 @@ https://github.com/user-attachments/assets/8938890f-2b31-4c4d-8332-3110f2707010
   ;; (snippy-source '("Your git repo" . "my-snippets-dir"))
   :config
   (snippy-install-or-update-snippets) ;; Autoupdate git repo
+  ;; (snippy-fix-lsp-snippet-mode) ;; Fixes lsp server snippets (e.g java lsp)
   (add-hook 'completion-at-point-functions #'snippy-capf)) ;; Or merge them with Yasnippet or eglot capf
 ```
 
@@ -80,8 +84,29 @@ https://github.com/user-attachments/assets/8938890f-2b31-4c4d-8332-3110f2707010
   - Repository URL
   - Directory Name (Cloned repo dir name)
 - snippy-global-languages: List of languages to enable globally across all major modes.
-- snippy-emacs-to-vscode-lang-alist: Alist mapping Emacs major modes to VSCode language identifiers.
-Check languages in Friendly Snippets [repo](https://github.com/rafamadriz/friendly-snippets "Git Repository")
+- snippy-emacs-to-vscode-lang-alist: Alist mapping for Emacs major modes to VSCode language names.
+You can see all the languages inside the package.json file in the Friendly Snippets [repo](https://github.com/rafamadriz/friendly-snippets "Git Repository")
+
+
+There are some language snippets that are optional. To use them add it to the list.
+You can also add more remaps if any language is missing from the list (or you can just make a pull request).
+```elisp
+;; Choose the remaps you want to use
+(setq snippy-emacs-to-vscode-lang-alist
+      (append snippy-emacs-to-vscode-lang-alist
+              '((c++-mode . "unreal")
+                (c++-ts-mode . "unreal")
+                (csharp-mode . "unity")
+                (csharp-ts-mode . "unity")
+                (html-mode . "djangohtml")
+                (html-mode . "htmldjango")
+                (web-mode . "angular")
+                (web-mode . "twig")
+                (python-mode . "django")
+                (python-mode . "django-rest")
+                (python-ts-mode . "django")
+                (python-ts-mode . "django-rest"))))
+```
 
 ## Functions
 - snippy-install-or-update-snippets: Install or update snippet git repo in snippy-install-dir.
@@ -93,13 +118,5 @@ Check languages in Friendly Snippets [repo](https://github.com/rafamadriz/friend
 ## Modes
 - snippy-minor-mode: Toggle snippy in the current buffer.
 - global-snippy-minor-mode: Toggle snippy in all buffers.
-
-<a id="how-developed"></a>
-# How it was made
-This package was made as a challenge to create an Emacs package as fast as possible.
-
-AI was heavily used. So there might be some weird/bad code here and there :P
-
-This package was made in two days. I think it turned out really good.
-Enjoy.
+- snippy-fix-lsp-snippet-mode: Toggle LSP server snippet fix globally.
 
