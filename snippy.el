@@ -142,6 +142,7 @@
 ;; Users should add them manually
 ;; Rethink global and all languages position in fundemental mode
 ;; Add to docs how to modify this list to add custom languages
+;; Finish up docs
 
 ;; Vars that are not part of it:
 ;; (c++-mode . "unreal")
@@ -563,14 +564,21 @@
                             snippet)))
     (apply orig-fun transformed-body args)))
 
-(advice-add 'yas-expand-snippet :around #'snippy--fix-lsp-yasnippet)
+;;;###autoload
+(define-minor-mode snippy-fix-lsp-snippet-mode
+  "Toggle VSCode to Yasnippet transformation for LSP snippets."
+  :global t
+  :group 'snippy
+  (if snippy-fix-lsp-snippet-mode
+      (advice-add 'yas-expand-snippet :around #'snippy--fix-lsp-yasnippet)
+    (advice-remove 'yas-expand-snippet #'snippy--fix-lsp-yasnippet)))
 
 ;;; ============================================================================
 ;;; Completion At Point (CAPF)
 ;;; ============================================================================
 
 (defun snippy--doc-buffer (cand)
-  "Generate a documentation buffer for snippet."
+  "Generate documentation buffer for snippet."
   (when-let* ((snippet  (get-text-property 0 'snippy-snippet cand))
               (body-raw (alist-get 'body snippet))
               (desc     (get-text-property 0 'snippy-desc cand))
