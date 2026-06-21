@@ -137,29 +137,6 @@
 ;;; Language Remap
 ;;; ============================================================================
 
-;; TODO:
-;; Remove unreal engine snippets from default load
-;; Users should add them manually
-;; Rethink global and all languages position in fundemental mode
-;; Add to docs how to modify this list to add custom languages
-;; Finish up docs
-
-;; Vars that are not part of it:
-;; (c++-mode . "unreal")
-;; (c++-ts-mode . "unreal")
-;; (csharp-mode . "unity")
-;; (csharp-ts-mode . "unity")
-;; (fundamental-mode . "all")
-;; (fundamental-mode . "global")
-;; (html-mode . "djangohtml")
-;; (html-mode . "htmldjango")
-;; (web-mode . "angular")
-;; (web-mode . "twig")
-;; (python-mode . "django")
-;; (python-mode . "django-rest")
-;; (python-ts-mode . "django")
-;; (python-ts-mode . "django-rest")
-
 (defvar snippy-emacs-to-vscode-lang-alist
   '((text-mode . "plaintext")
     (markdown-mode . "markdown")
@@ -566,7 +543,7 @@
 
 ;;;###autoload
 (define-minor-mode snippy-fix-lsp-snippet-mode
-  "Toggle VSCode to Yasnippet transformation for LSP snippets."
+  "Toggle VSCode to Yasnippet transformation for LSP server snippets."
   :global t
   :group 'snippy
   (if snippy-fix-lsp-snippet-mode
