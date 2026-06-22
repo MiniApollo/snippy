@@ -38,7 +38,6 @@
 ;;; ============================================================================
 
 (require 'cl-lib)
-(require 'json)
 (require 'yasnippet)
 (require 'project)
 
@@ -108,10 +107,13 @@
 
 (defun snippy-get-package-data ()
   "Read and parse the package.json file.
-  Used for getting the snippet paths to read and the VScode engine version."
+Used for getting the snippet paths to read and the VScode engine version."
   (let ((file (expand-file-name "package.json" (snippy--get-snippet-dir))))
     (if (file-exists-p file)
-        (setq snippy-package-json-content (json-read-file file))
+        (setq snippy-package-json-content
+              (with-temp-buffer
+                (insert-file-contents file)
+                (json-parse-buffer :object-type 'alist)))
       (user-error "Snippy: package.json not found. Run `M-x snippy-install-or-update-snippets' first"))))
 
 ;;; ============================================================================
@@ -419,7 +421,9 @@
                  for suffix in (snippy--get-current-language-path)
                  for full-path = (expand-file-name suffix dir)
                  if (file-exists-p full-path)
-                 append (json-read-file full-path)
+                 append (with-temp-buffer
+                          (insert-file-contents full-path)
+                          (json-parse-buffer :object-type 'alist))
                  else
                  do (message "Skipping: %s (not found)" full-path))))
 
