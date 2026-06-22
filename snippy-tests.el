@@ -5,7 +5,6 @@
 
 (require 'ert)
 (require 'cl-lib)
-(require 'json)
 (require 'snippy)
 
 ;;; ============================================================================
@@ -64,9 +63,15 @@
 ;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-get-vscode-language-name ()
   "Verify correct resolution of Emacs modes to VSCode languages."
-  (should (string= (snippy--get-vscode-language-name 'js-mode) "javascript"))
-  (should (string= (snippy--get-vscode-language-name 'python-ts-mode) "python"))
-  (should-not (snippy--get-vscode-language-name 'non-existent-major-mode)))
+  (with-temp-buffer
+    (js-mode)
+    (should (equal (snippy--get-vscode-language-name) '("javascript" "jsdoc"))))
+  (with-temp-buffer
+    (python-ts-mode)
+    (should (equal (snippy--get-vscode-language-name) '("python" "pydoc"))))
+  (with-temp-buffer
+    (delay-mode-hooks (special-mode))
+    (should-not (snippy--get-vscode-language-name))))
 
 (ert-deftest snippy-test-update-buffer-language ()
   "Ensure buffer language updates to target plus globals."
@@ -74,7 +79,7 @@
     (with-temp-buffer
       (js-mode)
       (snippy--update-buffer-language)
-      (should (equal snippy--buffer-language '("javascript" "global1" "global2"))))))
+      (should (equal snippy--buffer-language '("javascript" "jsdoc" "global1" "global2"))))))
 
 
 ;; 4. Paths & Path Selection Logic
@@ -151,7 +156,7 @@
       ;; Turn Mode On
       (snippy-minor-mode 1)
       (should snippy-minor-mode)
-      (should (equal snippy--buffer-language '("javascript")))
+      (should (equal snippy--buffer-language '("javascript" "jsdoc")))
       (should snippy--merged-snippets)
 
       ;; Turn Mode Off
@@ -239,8 +244,8 @@
     (snippy--update-buffer-language)
     ;; It should fall back to nil (plus any global languages if defined)
     (if snippy-global-languages
-        (should (equal snippy--buffer-language (cons nil snippy-global-languages)))
-      (should (equal snippy--buffer-language '(nil))))))
+        (should (equal snippy--buffer-language snippy-global-languages))
+      (should-not snippy--buffer-language))))
 
 (provide 'snippy-tests)
 ;;; snippy-tests.el ends here
