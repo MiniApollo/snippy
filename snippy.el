@@ -619,18 +619,20 @@ Used for getting the snippet paths to read and the VScode engine version."
 
 ;;;###autoload
 (defun snippy-capf (&optional interactive)
-  "Complete with snippy at point."
+  "Complete with snippy at point.
+If INTERACTIVE is non-nil (e.g., when called interactively), restrict
+completion exclusively to `snippy-capf'."
   (interactive (list t))
   (if interactive
-      (let ((completion-at-point-functions '(snippy-capf)))
-        (or (completion-at-point) (user-error "No snippy completions at point")))
+      (let ((completion-at-point-functions (list #'snippy-capf)))
+        (or (completion-at-point)
+            (user-error "No snippy completions at point")))
     (when snippy-minor-mode
-      (let* ((bnd (bounds-of-thing-at-point 'symbol))
-             (start (or (car bnd) (point)))
-             (end (or (cdr bnd) (point))))
+      (let* ((bounds (bounds-of-thing-at-point 'symbol))
+             (start  (or (car bounds) (point)))
+             (end    (or (cdr bounds) (point))))
         `(,start ,end
-                 ,(completion-table-with-cache
-                   (lambda (input) (snippy-capf-candidates input)))
+                 ,(completion-table-with-cache #'snippy-capf-candidates)
                  ,@snippy-capf-properties)))))
 
 ;;; ============================================================================
