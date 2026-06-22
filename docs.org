@@ -9,7 +9,7 @@
 - [[#program-structure][Program Structure]]
 - [[#favorite-snippets][Favorite snippets]]
 - [[#hacks][Hacks]]
-- [[#dev-variables-functions][Dev variables, functions]]
+- [[#variables--functions][Variables & Functions]]
 
 * Links
 Specification
@@ -120,13 +120,28 @@ for (let ${1:index} = 0; ${1:index} < ${2:array}.length; ${1:index}++) {
 }
 #+end_src
 
-* Dev variables, functions
-Variables
+* Variables & Functions
+User Variables:
+- snippy-install-dir
+- snippy-source
+- snippy-global-languages
+- snippy-emacs-to-vscode-lang-alist
+
+Dev Variables:
 - snippy--min-vscode-version
 - snippy-package-json-content
 - snippy--buffer-language
 - snippy--merged-snippets
 - snippy-capf-properties
+
+User Functions:
+- snippy-install-or-update-snippets
+- snippy-refresh-snippets
+- snippy-expand
+- snippy-fix-lsp-snippet-mode
+- snippy-capf
+- snippy-minor-mode
+- global-snippy-minor-mode
 
 Functions:
 - snippy--get-snippet-dir
@@ -135,11 +150,14 @@ Functions:
 - snippy-check-engine-version
 - snippy--get-vscode-language-name
 - snippy--update-buffer-language
-- snippy--get-all-snippets-paths
-- snippy--turn-on
 - snippy--get-all-paths-for-language
+- snippy--get-all-snippets-paths
 - snippy--get-current-language-path
 - snippy--find-snippet-by-prefix
 - snippy--get-variable-value
+- snippy--transform-snippet-body
+- snippy-expand-snippet
+- snippy--fix-lsp-yasnippet
 - snippy--doc-buffer
 - snippy-capf-candidates
+- snippy--turn-on
