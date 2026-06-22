@@ -30,6 +30,8 @@
 ;; VSCode snippets support for Emacs with Yasnippet
 
 ;;; Code:
+;; TODO:
+;; Fix special character snippets like !,@ etc.
 
 ;;; ============================================================================
 ;;; Dependencies
@@ -371,18 +373,17 @@
     (nushell-mode . "nu"))
   "Alist mapping Emacs major modes to VS Code language identifiers.")
 
-(defun snippy--get-vscode-language-name (&optional mode)
-  "Return the VS Code language string for MODE (defaults to current `major-mode`)."
-  (let* ((target-mode (or mode major-mode))
-         (match (assoc target-mode snippy-emacs-to-vscode-lang-alist)))
-    (if match
-        (cdr match)
-      nil)))
+(defun snippy--get-vscode-language-name ()
+  "Return a list of all VSCode language strings for the current major mode."
+  (mapcar #'cdr
+          (cl-remove-if-not
+           (lambda (cell) (eq (car cell) major-mode))
+           snippy-emacs-to-vscode-lang-alist)))
 
 (defun snippy--update-buffer-language ()
   "Update `snippy--buffer-language` based on the current major mode."
   (setq snippy--buffer-language
-        (cons (snippy--get-vscode-language-name) snippy-global-languages)))
+        (append (snippy--get-vscode-language-name) snippy-global-languages)))
 
 ;;; ============================================================================
 ;;; Snippet Reading & Parsing
