@@ -487,22 +487,24 @@ Used for getting the snippet paths to read and the VScode engine version."
 (defun snippy--transform-snippet-body (body-str)
   "Apply transformations to convert VSCode snippet syntax to Yasnippet."
   (let ((result body-str))
-    ;; 1. Handle Variables ($VAR or ${VAR})
+    ;; 1. Handle Variables ($VAR, ${VAR}, or ${VAR:default})
     (setq result (replace-regexp-in-string
-                  "\\$\\([A-Z_]+\\)\\|\\${\\([A-Z_]+\\)}"
+                  "\\$\\([a-zA-Z_][a-zA-Z0-9_]*\\)\\|\\${\\([a-zA-Z_][a-zA-Z0-9_]*\\)\\(:.*?\\)?}"
                   (lambda (match)
-                    (let ((var-name (or (match-string 1 match)
-                                        (match-string 2 match))))
-                      (or (snippy--get-variable-value var-name) var-name)))
+                    (save-match-data
+                      (let* ((var-name (or (match-string-no-properties 1 match)
+                                           (match-string-no-properties 2 match)))
+                             (val (snippy--get-variable-value var-name)))
+                        (if val val match))))
                   result t t))
 
     ;; 2. Handle Choices ${1|a,b|}
     (setq result (replace-regexp-in-string
-                  "\\${\\([0-9]+\\)|\\([^|]+\\)|}"
+                  "\\${\\([0-9]+\\)|\\(.*?\\)|}"
                   (lambda (match)
                     (save-match-data
-                      (let* ((index (match-string 1 match))
-                             (choices (split-string (match-string 2 match) ","))
+                      (let* ((index (match-string-no-properties 1 match))
+                             (choices (split-string (match-string-no-properties 2 match) "," t "[ \t\n\r]+"))
                              (lisp-list (format "'(%s)" (mapconcat #'prin1-to-string choices " "))))
                         (format "${%s:$$(yas-choose-value %s)}" index lisp-list))))
                   result t t))
@@ -510,15 +512,17 @@ Used for getting the snippet paths to read and the VScode engine version."
     ;; 3. Handle Placeholders and Deduplication
     (let ((seen-ids '()))
       (setq result (replace-regexp-in-string
-                    "\\${\\([0-9]+\\):\\([^}]+\\)}"
+                    "\\${\\([0-9]+\\):\\(\\(?:[^}]\\|\\\\}\\)*\\)}"
                     (lambda (match)
-                      (let* ((id (match-string 1 match))
-                             (default (match-string 2 match)))
-                        (if (member id seen-ids)
-                            (concat "$" id)
-                          (push id seen-ids)
-                          (format "${%s:%s}" id default))))
+                      (save-match-data
+                        (let* ((id (match-string-no-properties 1 match))
+                               (default (match-string-no-properties 2 match)))
+                          (if (member id seen-ids)
+                              (concat "$" id)
+                            (push id seen-ids)
+                            (format "${%s:%s}" id default)))))
                     result t t)))
+
     result))
 
 (defun snippy-expand-snippet (snippet)
