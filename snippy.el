@@ -81,6 +81,9 @@
 (defvar-local snippy--merged-snippets nil
   "A merged alist of all snippets found in the snippets files.")
 
+(defvar-local snippy--computed-candidates nil
+  "List of completely propertized completion candidates for the current buffer.")
+
 ;;; ============================================================================
 ;;; Setup & Version Checking
 ;;; ============================================================================
@@ -425,7 +428,20 @@ Used for getting the snippet paths to read and the VScode engine version."
                           (insert-file-contents full-path)
                           (json-parse-buffer :object-type 'alist))
                  else
-                 do (message "Skipping: %s (not found)" full-path))))
+                 do (message "Skipping: %s (not found)" full-path)))
+
+  ;; Pre-compute and propertize all capf candidates for speed and fuzzy compatibility
+  (let (raw-candidates)
+    (pcase-dolist (`(,name . ,data) snippy--merged-snippets)
+      (let ((pref (alist-get 'prefix data))
+            (desc (alist-get 'description data)))
+        (dolist (key (if (stringp pref) (list pref) (append pref nil)))
+          (push (propertize key
+                            'snippy-name (format "%s" name)
+                            'snippy-desc desc
+                            'snippy-snippet data)
+                raw-candidates))))
+    (setq snippy--computed-candidates (delete-dups raw-candidates))))
 
 (defun snippy--find-snippet-by-prefix (prefix snippets)
   "Return the first snippet entry where the prefix matches PREFIX."
@@ -605,39 +621,22 @@ Used for getting the snippet paths to read and the VScode engine version."
         :exclusive 'no)
   "Completion extra properties for Snippy.")
 
-(defun snippy-capf-candidates (prefix)
-  "Return a list of candidates from Snippy with metadata."
-  (let (candidates
-        (case-fold-search (or completion-ignore-case case-fold-search)))
-    (pcase-dolist (`(,name . ,data) snippy--merged-snippets)
-      (let ((pref (alist-get 'prefix data))
-            (desc (alist-get 'description data)))
-        (dolist (key (if (stringp pref) (list pref) (append pref nil)))
-          (when (string-prefix-p prefix key case-fold-search)
-            (push (propertize key
-                              'snippy-name (format "%s" name)
-                              'snippy-desc desc
-                              'snippy-snippet data)
-                  candidates)))))
-    (delete-dups candidates)))
-
 ;;;###autoload
 (defun snippy-capf (&optional interactive)
   "Complete with snippy at point.
-If INTERACTIVE is non-nil (e.g., when called interactively), restrict
-completion exclusively to `snippy-capf'."
+If called interactively restrict completion to `snippy-capf'."
   (interactive (list t))
   (if interactive
       (let ((completion-at-point-functions (list #'snippy-capf)))
         (or (completion-at-point)
             (user-error "No snippy completions at point")))
-    (when snippy-minor-mode
+    (when (and snippy-minor-mode snippy--computed-candidates)
       (let* ((end (point))
              (start (save-excursion
-                      (skip-syntax-backward "w_.")
+                      (skip-chars-backward "[:alnum:]!@#$%_&*\\-\\^")
                       (point))))
         `(,start ,end
-                 ,(completion-table-with-cache #'snippy-capf-candidates)
+                 ,snippy--computed-candidates
                  ,@snippy-capf-properties)))))
 
 ;;; ============================================================================
