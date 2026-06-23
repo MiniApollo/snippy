@@ -393,7 +393,6 @@ Used for getting the snippet paths to read and the VScode engine version."
                           (json-parse-buffer :object-type 'alist))
                  else
                  do (message "Skipping: %s (not found)" full-path)))
-
   (snippy--compute-candidates))
 
 (defun snippy--find-snippet-by-prefix (prefix snippets)
@@ -491,7 +490,6 @@ Used for getting the snippet paths to read and the VScode engine version."
                             (push id seen-ids)
                             (format "${%s:%s}" id default)))))
                     result t t)))
-
     result))
 
 (defun snippy-expand-snippet (snippet)

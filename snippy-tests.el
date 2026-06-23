@@ -53,7 +53,7 @@
         (warning-triggered nil))
     ;; Intercept lwarn signals
     (cl-letf (((symbol-function 'lwarn)
-               (lambda (type level message &rest args)
+               (lambda (type _level _message &rest _args)
                  (when (eq type 'snippy) (setq warning-triggered t)))))
       (snippy-check-engine-version)
       (should warning-triggered))))
