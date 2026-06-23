@@ -632,9 +632,10 @@ completion exclusively to `snippy-capf'."
         (or (completion-at-point)
             (user-error "No snippy completions at point")))
     (when snippy-minor-mode
-      (let* ((bounds (bounds-of-thing-at-point 'symbol))
-             (start  (or (car bounds) (point)))
-             (end    (or (cdr bounds) (point))))
+      (let* ((end (point))
+             (start (save-excursion
+                      (skip-syntax-backward "w_.")
+                      (point))))
         `(,start ,end
                  ,(completion-table-with-cache #'snippy-capf-candidates)
                  ,@snippy-capf-properties)))))
