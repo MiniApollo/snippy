@@ -365,6 +365,20 @@ Used for getting the snippet paths to read and the VScode engine version."
            for lang in (ensure-list snippy--buffer-language)
            append (snippy--get-all-paths-for-language all-dirs lang)))
 
+(defun snippy--compute-candidates ()
+  "Pre-compute and propertize all capf candidates for speed and fuzzy compatibility."
+  (let (raw-candidates)
+    (pcase-dolist (`(,name . ,data) snippy--merged-snippets)
+      (let ((pref (alist-get 'prefix data))
+            (desc (alist-get 'description data)))
+        (dolist (key (if (stringp pref) (list pref) (append pref nil)))
+          (push (propertize key
+                            'snippy-name (format "%s" name)
+                            'snippy-desc desc
+                            'snippy-snippet data)
+                raw-candidates))))
+    (setq snippy--computed-candidates (delete-dups raw-candidates))))
+
 (defun snippy-refresh-snippets ()
   "Force an update on the snippets for the current buffer."
   (interactive)
@@ -380,18 +394,7 @@ Used for getting the snippet paths to read and the VScode engine version."
                  else
                  do (message "Skipping: %s (not found)" full-path)))
 
-  ;; Pre-compute and propertize all capf candidates for speed and fuzzy compatibility
-  (let (raw-candidates)
-    (pcase-dolist (`(,name . ,data) snippy--merged-snippets)
-      (let ((pref (alist-get 'prefix data))
-            (desc (alist-get 'description data)))
-        (dolist (key (if (stringp pref) (list pref) (append pref nil)))
-          (push (propertize key
-                            'snippy-name (format "%s" name)
-                            'snippy-desc desc
-                            'snippy-snippet data)
-                raw-candidates))))
-    (setq snippy--computed-candidates (delete-dups raw-candidates))))
+  (snippy--compute-candidates))
 
 (defun snippy--find-snippet-by-prefix (prefix snippets)
   "Return the first snippet entry where the prefix matches PREFIX."

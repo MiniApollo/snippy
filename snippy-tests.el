@@ -133,11 +133,13 @@
 ;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-capf-candidates ()
   "Verify candidate engine extracts prefixes, annotations, and injects properties."
-  (let ((snippy--merged-snippets snippy-test--mock-js-snippets))
-    (let ((res (snippy-capf-candidates "cl")))
-      (should (= (length res) 1))
-      (should (string= (car res) "clg"))
-      (should (string= (get-text-property 0 'snippy-name (car res)) "Console log")))))
+  (let ((snippy--merged-snippets snippy-test--mock-js-snippets)
+        (snippy--computed-candidates nil))
+    (snippy--compute-candidates)
+    (should (= (length snippy--computed-candidates) 3)) ; "clg", "afn", "arrow"
+    (let ((clg-cand (cl-find "clg" snippy--computed-candidates :test #'string=)))
+      (should clg-cand)
+      (should (string= (get-text-property 0 'snippy-name clg-cand) "Console log")))))
 
 
 ;; 8. Minor Mode Lifecycle
