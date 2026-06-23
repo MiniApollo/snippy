@@ -366,7 +366,7 @@ Used for getting the snippet paths to read and the VScode engine version."
            append (snippy--get-all-paths-for-language all-dirs lang)))
 
 (defun snippy--compute-candidates ()
-  "Pre-compute and propertize all capf candidates for speed and fuzzy compatibility."
+  "Pre-compute and propertize all capf candidates for speed."
   (let (raw-candidates)
     (pcase-dolist (`(,name . ,data) snippy--merged-snippets)
       (let ((pref (alist-get 'prefix data))
