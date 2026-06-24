@@ -32,6 +32,11 @@
 ;;; Code:
 ;; TODO:
 ;; Fix special character snippets like !,@ etc.
+;; Characters like !, @ do not work either with yasnippet. The default behaviour
+;; is that they are not treated part of the snippet.
+;; It can be fixed with the following code for yasnippet.
+;; (setq yas-key-syntaxes '("w_" "w_." "^ "))
+;; More experimentation needed for snippy.
 
 ;;; ============================================================================
 ;;; Dependencies
@@ -147,6 +152,12 @@ Used for getting the snippet paths to read and the VScode engine version."
 ;;; Language Remap
 ;;; ============================================================================
 
+;; Non existent modes
+;; (license-mode "license")
+;; (blade-mode "blade")
+;; (eelixir-mode "eelixir")
+;; (rmarkdown-mode "rmd")
+
 (defvar snippy-emacs-to-vscode-lang-alist
   '((text-mode "plaintext")
     (markdown-mode "markdown")
@@ -160,7 +171,6 @@ Used for getting the snippet paths to read and the VScode engine version."
     (mhtml-mode "html")
     (web-mode "html")
     (bibtex-mode "bib" "bibtex")
-    (blade-mode "blade")
 
     ;; C / C++
     (c-mode "c" "cdoc")
@@ -182,8 +192,7 @@ Used for getting the snippet paths to read and the VScode engine version."
     ;; Elixir
     (elixir-mode "elixir")
     (elixir-ts-mode "elixir")
-    (eelixir-mode "eelixir")
-    (heex-mode "heex")
+    (heex-ts-mode "heex")
 
     (f90-mode "fortran")
     (fortran-mode "fortran")
@@ -220,8 +229,7 @@ Used for getting the snippet paths to read and the VScode engine version."
     (solidity-mode "solidity")
     (swift-mode "swift")
     (sql-mode "sql")
-    (verilog-mode "systemverilog")
-    (systemverilog-mode "verilog")
+    (verilog-mode "systemverilog" "verilog")
 
     ;; Shell / Bash
     (sh-mode "shellscript" "sh" "shell" "shelldoc" "zsh")
@@ -277,7 +285,6 @@ Used for getting the snippet paths to read and the VScode engine version."
 
     (r-mode "r")
     (ess-r-mode "r")
-    (rmarkdown-mode "rmd")
     (org-mode "org")
     (gdscript-mode "gdscript")
     (gdscript-ts-mode "gdscript")
@@ -323,7 +330,6 @@ Used for getting the snippet paths to read and the VScode engine version."
     (pug-mode "pug")
     (jekyll-mode "jekyll")
     (kivy-mode "kivy")
-    (license-mode "license")
     (liquid-mode "liquid")
     (artbollocks-mode "loremipsum")
     (mint-mode "mint")
