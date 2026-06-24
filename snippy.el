@@ -107,9 +107,7 @@
         (progn
           (message "Pulling updates in %s..." dest)
           (let ((default-directory dest))
-            (with-temp-buffer
-              (call-process "git" nil t nil "pull")
-              (message "%s" (buffer-string)))))
+            (start-process "Snippy-git-pull" nil "git" "pull")))
       (message "Cloning %s to %s..." (car snippy-source) dest)
       (start-process "Snippy-git-clone" nil "git" "clone" (car snippy-source) dest))))
 
