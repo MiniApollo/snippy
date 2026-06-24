@@ -37,6 +37,9 @@
 ;; It can be fixed with the following code for yasnippet.
 ;; (setq yas-key-syntaxes '("w_" "w_." "^ "))
 ;; More experimentation needed for snippy.
+;; The problem was with my config.
+;; When cape-capf-super combines multiple completion functions, it uses the prefix boundaries of the first
+;; Capf in the list that returns a match. So when merging backends cape be the first
 
 ;;; ============================================================================
 ;;; Dependencies
@@ -588,7 +591,7 @@ If called interactively restrict completion to `snippy-capf'."
     (when (and snippy-minor-mode snippy--computed-candidates)
       (let* ((end (point))
              (start (save-excursion
-                      (skip-chars-backward "[:alnum:]!@#$%_&*\\-\\^")
+                      (skip-chars-backward "[:alnum:]!@#$%_&*\\^\\-")
                       (point))))
         `(,start ,end
                  ,snippy--computed-candidates
