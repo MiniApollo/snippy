@@ -80,7 +80,7 @@
 (defconst snippy--min-vscode-version "1.11.0"
   "The minimum VSCode engine version required.")
 
-(defvar snippy-package-json-content nil
+(defvar snippy--package-json-content nil
   "Package json file content parsed as an alist.")
 
 (defvar-local snippy--buffer-language nil
@@ -114,12 +114,12 @@ If `snippy-install-dir' is nil, it defaults to `user-emacs-directory`."
             (message "Finished cloning to %s" dest)
           (message "Git clone failed: %s" (string-trim (buffer-string))))))))
 
-(defun snippy-get-package-data ()
+(defun snippy--get-package-data ()
   "Read and parse the package.json file.
 Used for getting the snippet paths to read and the VScode engine version."
   (let ((file (expand-file-name "package.json" (snippy--get-snippet-dir))))
     (if (file-exists-p file)
-        (setq snippy-package-json-content
+        (setq snippy--package-json-content
               (with-temp-buffer
                 (insert-file-contents file)
                 (json-parse-buffer :object-type 'alist)))
@@ -134,10 +134,10 @@ Used for getting the snippet paths to read and the VScode engine version."
         (match-string 1 version)
       version)))
 
-(defun snippy-check-engine-version ()
+(defun snippy--check-engine-version ()
   "Check if the current VSCode engine version meets the minimum requirement."
   (let ((current-engine-version
-         (snippy--clean-version (alist-get 'vscode (alist-get 'engines snippy-package-json-content)))))
+         (snippy--clean-version (alist-get 'vscode (alist-get 'engines snippy--package-json-content)))))
     (cond
      ((null current-engine-version)
       (lwarn 'snippy :warning
@@ -352,7 +352,7 @@ Used for getting the snippet paths to read and the VScode engine version."
 
 (defun snippy--get-all-snippets-paths ()
   "Return the snippets paths in package.json file for all languages."
-  (alist-get 'snippets (alist-get 'contributes snippy-package-json-content)))
+  (alist-get 'snippets (alist-get 'contributes snippy--package-json-content)))
 
 (defun snippy--get-current-language-path ()
   "Return a combined list of snippet paths for all languages."
@@ -547,7 +547,7 @@ ARGS are the remaining arguments passed to ORIG-FUN."
         (read-only-mode 1)
         (current-buffer)))))
 
-(defvar snippy-capf-properties
+(defvar snippy--capf-properties
   (list :annotation-function (lambda (cand)
                                (let ((name (get-text-property 0 'snippy-name cand)))
                                  (if name
@@ -580,7 +580,7 @@ Optional argument INTERACTIVE specifies whether the call is interactive."
                       (point))))
         `(,start ,end
                  ,snippy--computed-candidates
-                 ,@snippy-capf-properties)))))
+                 ,@snippy--capf-properties)))))
 
 ;;; Minor Modes
 
@@ -591,11 +591,11 @@ Optional argument INTERACTIVE specifies whether the call is interactive."
   (if snippy-minor-mode
       (condition-case err
           (progn
-            (unless snippy-package-json-content
-              (snippy-get-package-data))
+            (unless snippy--package-json-content
+              (snippy--get-package-data))
             (snippy-refresh-snippets)
             (when (called-interactively-p 'any)
-              (snippy-check-engine-version)
+              (snippy--check-engine-version)
               (message "Snippy minor mode enabled")))
         (error
          (snippy-minor-mode -1)
