@@ -107,12 +107,14 @@
   (let* ((base (or snippy-install-dir user-emacs-directory))
          (dest (expand-file-name (cdr snippy-source) base)))
     (if (file-directory-p dest)
-        (progn
+        (let ((default-directory dest))
           (message "Pulling updates in %s..." dest)
-          (let ((default-directory dest))
-            (start-process "Snippy-git-pull" nil "git" "pull")))
+          (start-process "Snippy-git-pull" nil "git" "pull"))
       (message "Cloning %s to %s..." (car snippy-source) dest)
-      (start-process "Snippy-git-clone" nil "git" "clone" (car snippy-source) dest))))
+      (with-temp-buffer
+        (if (= 0 (call-process "git" nil t nil "clone" (car snippy-source) dest))
+            (message "Finished cloning to %s" dest)
+          (message "Git clone failed: %s" (string-trim (buffer-string))))))))
 
 (defun snippy-get-package-data ()
   "Read and parse the package.json file.
