@@ -6,7 +6,7 @@
 ;; Assisted-by: Gemini:3.5 Flash
 ;; Created: 28 Jan 2026
 
-;; Keywords: convenience, emulation
+;; Keywords: convenience, emulations
 ;; Package-Requires: ((emacs "30.1") (yasnippet "0.14.0"))
 ;; Version: 2.0.0
 ;; URL: https://github.com/MiniApollo/snippy
@@ -45,6 +45,12 @@
 ;;; ============================================================================
 ;;; Dependencies
 ;;; ============================================================================
+;; Add these to readme:
+;; Non existent modes
+;; (license-mode "license")
+;; (blade-mode "blade")
+;; (eelixir-mode "eelixir")
+;; (rmarkdown-mode "rmd")
 
 (require 'cl-lib)
 (require 'yasnippet)
@@ -156,11 +162,6 @@ Used for getting the snippet paths to read and the VScode engine version."
 ;;; Language Remap
 ;;; ============================================================================
 
-;; Non existent modes
-;; (license-mode "license")
-;; (blade-mode "blade")
-;; (eelixir-mode "eelixir")
-;; (rmarkdown-mode "rmd")
 
 (defvar snippy-emacs-to-vscode-lang-alist
   '((text-mode "plaintext")
