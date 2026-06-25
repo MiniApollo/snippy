@@ -1,8 +1,39 @@
 ;;; snippy-tests.el --- Tests for snippy.el  -*- lexical-binding:t -*-
 
+;; Copyright (C) 2026 Mark Surmann
+
+;; Author: Mark Surmann <overmilord62@gmail.com>
+;; Assisted-by: Gemini:3.5 Flash
+;; Created: 28 Jan 2026
+
+;; Keywords: convenience, emulations
+;; Package-Requires: ((emacs "30.1") (yasnippet "0.14.0"))
+;; URL: https://github.com/MiniApollo/snippy
+
+;; This file is not part of GNU Emacs.
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; Tests for Snippy.el.  These tests are AI generated.
+
 ;; To run:
 ;; emacs -batch -f package-initialize -l snippy.el -l snippy-tests.el -f ert-run-tests-batch-and-exit
-;; These tests are AI generated.
+;; Yasnippets needs to be installed inside your Emacs config directory for this command.
+
+;;; Code:
 
 (require 'ert)
 (require 'cl-lib)
@@ -10,13 +41,13 @@
 
 ;;; Mock Data & Fixtures
 
-(defvar snippy-test--mock-package-json
+(defvar snippy-tests--mock-package-json
   '((engines . ((vscode . "^1.20.0")))
     (contributes . ((snippets . [((language . "javascript") (path . "./snippets/javascript.json"))
                                  ((language . ["typescript" "tsx"]) (path . "./snippets/typescript.json"))]))))
   "Mock representation of parsed package.json.")
 
-(defvar snippy-test--mock-js-snippets
+(defvar snippy-tests--mock-js-snippets
   '(( "Console log" . ((prefix . "clg")
                        (body . ["console.log($1);"])
                        (description . "Log to console")))
@@ -27,7 +58,7 @@
 ;;; Test Cases
 
 ;; 1. Setup & Directory Methods
-(ert-deftest snippy-test-get-snippet-dir ()
+(ert-deftest snippy-tests-get-snippet-dir ()
   "Ensure `snippy--get-snippet-dir' builds the path correctly."
   (let ((snippy-install-dir "/tmp/emacs-snippets")
         (snippy-source '("http://github.com" . "my-snippets")))
@@ -35,14 +66,14 @@
 
 
 ;; 2. Version and Engine Checking
-(ert-deftest snippy-test-clean-version ()
+(ert-deftest snippy-tests-clean-version ()
   "Verify `snippy--clean-version' extracts correct semantic version strings."
   (should (string= (snippy--clean-version "^1.53.0") "1.53.0"))
   (should (string= (snippy--clean-version "~1.2.0") "1.2.0"))
   (should (string= (snippy--clean-version "1.11.0") "1.11.0"))
   (should-not (snippy--clean-version nil)))
 
-(ert-deftest snippy-test-check-engine-version-warning ()
+(ert-deftest snippy-tests-check-engine-version-warning ()
   "Test `snippy-check-engine-version' alerts when version is below requirement."
   (let ((snippy-package-json-content '((engines . ((vscode . "1.5.0")))))
         (warning-triggered nil))
@@ -55,7 +86,7 @@
 
 
 ;; 3. Language Mapping Checks
-(ert-deftest snippy-test-get-vscode-language-name ()
+(ert-deftest snippy-tests-get-vscode-language-name ()
   "Verify correct resolution of Emacs modes to VSCode languages."
   (with-temp-buffer
     (js-mode)
@@ -67,7 +98,7 @@
     (delay-mode-hooks (special-mode))
     (should-not (snippy--get-vscode-language-name))))
 
-(ert-deftest snippy-test-update-buffer-language ()
+(ert-deftest snippy-tests-update-buffer-language ()
   "Ensure buffer language updates to target plus globals."
   (let ((snippy-global-languages '("global1" "global2")))
     (with-temp-buffer
@@ -77,9 +108,9 @@
 
 
 ;; 4. Paths & Path Selection Logic
-(ert-deftest snippy-test-get-all-paths-for-language ()
+(ert-deftest snippy-tests-get-all-paths-for-language ()
   "Test nested structures for arrays vs single strings are resolved accurately."
-  (let ((data (alist-get 'snippets (alist-get 'contributes snippy-test--mock-package-json))))
+  (let ((data (alist-get 'snippets (alist-get 'contributes snippy-tests--mock-package-json))))
     ;; Array check
     (should (equal (snippy--get-all-paths-for-language data "tsx") '("./snippets/typescript.json")))
     ;; Standard single string check
@@ -89,9 +120,9 @@
 
 
 ;; 5. Parsing & Finding Snippets
-(ert-deftest snippy-test-find-snippet-by-prefix ()
+(ert-deftest snippy-tests-find-snippet-by-prefix ()
   "Verify prefixes can match single strings, arrays, or lists inside snippet indexes."
-  (let ((snippy--merged-snippets snippy-test--mock-js-snippets))
+  (let ((snippy--merged-snippets snippy-tests--mock-js-snippets))
     (should (snippy--find-snippet-by-prefix "clg"))
     ;; Array element prefix match
     (should (snippy--find-snippet-by-prefix "arrow"))
@@ -100,7 +131,7 @@
 
 
 ;; 6. Syntactic Transformation (VSCode Syntax -> Yasnippet)
-(ert-deftest snippy-test-transform-snippet-variables ()
+(ert-deftest snippy-tests-transform-snippet-variables ()
   "Test variable extraction and standard date expansions work seamlessly."
   ;; File Base expansion
   (let ((buffer-file-name "/home/user/project/src/main.js"))
@@ -108,13 +139,13 @@
   ;; Simple year test
   (should (string-match-p "^[0-9]\\{4\\}$" (snippy--transform-snippet-body "$CURRENT_YEAR"))))
 
-(ert-deftest snippy-test-transform-snippet-choices ()
-  "Ensure VSCode style multi-choice syntax gets converted into yas-choose-value logic."
+(ert-deftest snippy-tests-transform-snippet-choices ()
+  "Ensure VSCode style multi-choice syntax gets converted into `yas-choose-value' logic."
   (let ((input "${1|one,two,three|}")
         (expected "${1:$$(yas-choose-value '(\"one\" \"two\" \"three\"))}"))
     (should (string= (snippy--transform-snippet-body input) expected))))
 
-(ert-deftest snippy-test-transform-snippet-placeholders ()
+(ert-deftest snippy-tests-transform-snippet-placeholders ()
   "Check that nested and mirrored identifiers optimize/deduplicate cleanly."
   (let ((input "${1:foo} bar $1")
         (expected "${1:foo} bar $1"))
@@ -122,9 +153,9 @@
 
 
 ;; 7. Completion At Point (CAPF) Validation
-(ert-deftest snippy-test-capf-candidates ()
+(ert-deftest snippy-tests-capf-candidates ()
   "Verify candidate engine extracts prefixes, annotations, and injects properties."
-  (let ((snippy--merged-snippets snippy-test--mock-js-snippets)
+  (let ((snippy--merged-snippets snippy-tests--mock-js-snippets)
         (snippy--computed-candidates nil))
     (snippy--compute-candidates)
     (should (= (length snippy--computed-candidates) 3)) ; "clg", "afn", "arrow"
@@ -134,16 +165,16 @@
 
 
 ;; 8. Minor Mode Lifecycle
-(ert-deftest snippy-test-minor-mode-toggle ()
+(ert-deftest snippy-tests-minor-mode-toggle ()
   "Assert activation triggers updates and teardown clears cached buffer context."
   (with-temp-buffer
     (js-mode)
     ;; Mock initialization configurations to prevent disk reads
-    (setq snippy-package-json-content snippy-test--mock-package-json)
+    (setq snippy-package-json-content snippy-tests--mock-package-json)
     (cl-letf (((symbol-function 'snippy-refresh-snippets)
                (lambda ()
                  (snippy--update-buffer-language)
-                 (setq snippy--merged-snippets snippy-test--mock-js-snippets))))
+                 (setq snippy--merged-snippets snippy-tests--mock-js-snippets))))
 
       ;; Turn Mode On
       (snippy-minor-mode 1)
@@ -158,7 +189,7 @@
       (should-not snippy--merged-snippets))))
 
 ;; 9. Deep Variable Resolution (snippy--get-variable-value)
-(ert-deftest snippy-test-get-variable-value-fallback-and-bounds ()
+(ert-deftest snippy-tests-get-variable-value-fallback-and-bounds ()
   "Verify variable resolution when no file is visiting, and check index positions."
   (with-temp-buffer
     ;; Explicitly ensure buffer-file-name is nil
@@ -175,7 +206,7 @@
     (should (string= (snippy--get-variable-value "TM_LINE_NUMBER") "2"))
     (should (string= (snippy--get-variable-value "TM_CURRENT_LINE") "Line 2"))))
 
-(ert-deftest snippy-test-get-variable-value-dates-and-randoms ()
+(ert-deftest snippy-tests-get-variable-value-dates-and-randoms ()
   "Ensure date, Unix timestamps, and randomized generation meet spec formats."
   (should (string-match-p "^[0-9]\\{2\\}$" (snippy--get-variable-value "CURRENT_DATE")))
   (should (string-match-p "^[0-9]\\{2\\}$" (snippy--get-variable-value "CURRENT_HOUR")))
@@ -185,7 +216,7 @@
 
 
 ;; 10. Advanced Syntactic Transformations (Edge Cases)
-(ert-deftest snippy-test-transform-mixed-syntax ()
+(ert-deftest snippy-tests-transform-mixed-syntax ()
   "Verify transformations on bodies containing mixed variables, placeholders, and choices."
   (let ((input "fn ${1:name}(${2|a,b|}) {\n\t$TM_FILENAME\n\treturn $1;\n}")
         ;; We simulate without a file back-ended buffer, so TM_FILENAME maps to "Untitled"
@@ -194,7 +225,7 @@
       (setq buffer-file-name nil)
       (should (string= (snippy--transform-snippet-body input) expected)))))
 
-(ert-deftest snippy-test-transform-placeholder-deduplication-complex ()
+(ert-deftest snippy-tests-transform-placeholder-deduplication-complex ()
   "Ensure multiple instances of identical placeholder IDs convert subsequent hits to mirrors."
   (let ((input "${1:foo} -> ${1:bar} -> $1")
         (expected "${1:foo} -> $1 -> $1"))
@@ -202,7 +233,7 @@
 
 
 ;; 11. CAPF Metadata Extraction & Annotations
-(ert-deftest snippy-test-capf-properties-and-annotations ()
+(ert-deftest snippy-tests-capf-properties-and-annotations ()
   "Test annotation functions and structural properties assigned to candidates."
   (let* ((cand "clg")
          (propertized-cand (propertize cand
@@ -218,13 +249,13 @@
 
 
 ;; 12. Robustness Against Malformed/Empty Config structures
-(ert-deftest snippy-test-empty-language-path-tolerance ()
+(ert-deftest snippy-tests-empty-language-path-tolerance ()
   "Verify path discovery does not crash when package data configurations are empty."
   (let ((empty-data []))
     (should-not (snippy--get-all-paths-for-language empty-data "javascript"))
     (should-not (snippy--get-all-paths-for-language nil "python"))))
 
-(ert-deftest snippy-test-unmapped-mode-fallback ()
+(ert-deftest snippy-tests-unmapped-mode-fallback ()
   "Ensure unmapped major modes fall back gracefully without breaking buffer states."
   (with-temp-buffer
     ;; Use an arbitrary mode that is truly missing from the mapping alist
