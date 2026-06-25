@@ -99,11 +99,12 @@
 ;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-find-snippet-by-prefix ()
   "Verify prefixes can match single strings, arrays, or lists inside snippet indexes."
-  (should (snippy--find-snippet-by-prefix "clg" snippy-test--mock-js-snippets))
-  ;; Array element prefix match
-  (should (snippy--find-snippet-by-prefix "arrow" snippy-test--mock-js-snippets))
-  ;; Non-existent prefix fallback
-  (should-not (snippy--find-snippet-by-prefix "invalid" snippy-test--mock-js-snippets)))
+  (let ((snippy--merged-snippets snippy-test--mock-js-snippets))
+    (should (snippy--find-snippet-by-prefix "clg"))
+    ;; Array element prefix match
+    (should (snippy--find-snippet-by-prefix "arrow"))
+    ;; Non-existent prefix fallback
+    (should-not (snippy--find-snippet-by-prefix "invalid"))))
 
 
 ;; 6. Syntactic Transformation (VSCode Syntax -> Yasnippet)
