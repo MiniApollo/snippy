@@ -59,7 +59,7 @@
   :group 'editing)
 
 (defcustom snippy-install-dir (expand-file-name user-emacs-directory)
-  "Directory where to install/clone snippets"
+  "Directory where to install/clone snippets."
   :type 'directory
   :group 'snippy)
 
@@ -98,12 +98,12 @@
 ;;; ============================================================================
 
 (defun snippy--get-snippet-dir ()
-  "Return snippet directory"
+  "Return snippet directory."
   (expand-file-name (cdr snippy-source) snippy-install-dir))
 
 (defun snippy-install-or-update-snippets ()
-  "Install or update snippet git repo in snippy-install-dir.
-  If snippy-install-dir is nil, it defaults to `user-emacs-directory`."
+  "Install or update snippet git repo in `snippy-install-dir'.
+If `snippy-install-dir' is nil, it defaults to `user-emacs-directory`."
   (interactive)
   (let* ((base (or snippy-install-dir user-emacs-directory))
          (dest (expand-file-name (cdr snippy-source) base)))
@@ -126,7 +126,7 @@ Used for getting the snippet paths to read and the VScode engine version."
               (with-temp-buffer
                 (insert-file-contents file)
                 (json-parse-buffer :object-type 'alist)))
-      (user-error "Snippy: package.json not found. Run `M-x snippy-install-or-update-snippets' first"))))
+      (user-error "Snippy: package.json not found.  Run `M-x snippy-install-or-update-snippets' first"))))
 
 ;;; ============================================================================
 ;;; Vscode engine check
@@ -354,11 +354,11 @@ Used for getting the snippet paths to read and the VScode engine version."
 ;;; Snippet Reading & Parsing
 ;;; ============================================================================
 
-(defun snippy--get-all-paths-for-language (my-snippet-data target-lang)
-  "Return a list of all paths associated with TARGET-LANG."
+(defun snippy--get-all-paths-for-language (snippet-entries target-lang)
+  "Return a list of all paths in SNIPPET-ENTRIES associated with TARGET-LANG."
   (when target-lang
     (let ((target (if (symbolp target-lang) (symbol-name target-lang) target-lang)))
-      (cl-loop for entry across (or my-snippet-data [])
+      (cl-loop for entry across (or snippet-entries [])
                for val = (alist-get 'language entry)
                for val-strings = (mapcar (lambda (x) (if (symbolp x) (symbol-name x) x))
                                          (if (vectorp val) (append val nil) (list val)))
@@ -366,11 +366,11 @@ Used for getting the snippet paths to read and the VScode engine version."
                collect (alist-get 'path entry)))))
 
 (defun snippy--get-all-snippets-paths ()
-  "Returns the snippets paths in package.json file for all languages"
+  "Return the snippets paths in package.json file for all languages."
   (alist-get 'snippets (alist-get 'contributes snippy-package-json-content)))
 
 (defun snippy--get-current-language-path ()
-  "Returns a combined list of snippet paths for all languages."
+  "Return a combined list of snippet paths for all languages."
   (cl-loop with all-dirs = (snippy--get-all-snippets-paths)
            for lang in (ensure-list snippy--buffer-language)
            append (snippy--get-all-paths-for-language all-dirs lang)))
@@ -405,7 +405,7 @@ Used for getting the snippet paths to read and the VScode engine version."
                  do (message "Skipping: %s (not found)" full-path)))
   (snippy--compute-candidates))
 
-(defun snippy--find-snippet-by-prefix (prefix snippets)
+(defun snippy--find-snippet-by-prefix (prefix)
   "Return the first snippet entry where the prefix matches PREFIX."
   (cl-find-if (lambda (snippet)
                 (let ((target (alist-get 'prefix (cdr snippet))))
@@ -413,14 +413,14 @@ Used for getting the snippet paths to read and the VScode engine version."
                    ((stringp target) (string= prefix target))
                    ((vectorp target) (cl-position prefix target :test #'string=))
                    ((listp target)   (member prefix target)))))
-              snippets))
+              snippy--merged-snippets))
 
 ;;; ============================================================================
 ;;; Snippet Expansion
 ;;; ============================================================================
 
 (defun snippy--get-variable-value (var-name)
-  "Resolves VS Code variables to their Emacs string values."
+  "Resolves VSCode variables to their Emacs string values based on VAR-NAME."
   (let ((file-name (buffer-file-name)))
     (pcase var-name
       ("TM_SELECTED_TEXT" (if (use-region-p) (buffer-substring-no-properties (region-beginning) (region-end)) ""))
@@ -463,7 +463,7 @@ Used for getting the snippet paths to read and the VScode engine version."
       (_ nil))))
 
 (defun snippy--transform-snippet-body (body-str)
-  "Apply transformations to convert VSCode snippet syntax to Yasnippet."
+  "Transform BODY-STR from VSCode snippet syntax to Yasnippet."
   (let ((result body-str))
     ;; 1. Handle Variables ($VAR, ${VAR}, or ${VAR:default})
     (setq result (replace-regexp-in-string
@@ -503,7 +503,7 @@ Used for getting the snippet paths to read and the VScode engine version."
     result))
 
 (defun snippy-expand-snippet (snippet)
-  "Convert VSCode snippets to Yasnippet and expand it."
+  "Convert VSCode SNIPPET to Yasnippet and expand it."
   (let* ((body-raw (alist-get 'body snippet))
          (body-str (cond ((vectorp body-raw) (mapconcat #'identity body-raw "\n"))
                          ((stringp body-raw) body-raw)
@@ -511,20 +511,22 @@ Used for getting the snippet paths to read and the VScode engine version."
     (yas-expand-snippet (snippy--transform-snippet-body body-str))))
 
 (defun snippy-expand (prefix)
-  "Expand snippet by prefix"
+  "Expand snippet by PREFIX."
   (interactive "sEnter snippet prefix: ")
   (unless (featurep 'yasnippet)
-    (user-error "Yasnippet is not loaded. Please install or require it first"))
+    (user-error "Yasnippet is not loaded.  Please install or require it first"))
   (unless (bound-and-true-p yas-minor-mode)
     (yas-minor-mode t))
-  (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix snippy--merged-snippets)))
+  (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix)))
 
 ;;; ============================================================================
 ;;; Yasnippet Eglot Fix
 ;;; ============================================================================
 
 (defun snippy--fix-lsp-yasnippet (orig-fun snippet &rest args)
-  "Intercept and transform SNIPPET from Vscode style to yasnippet"
+  "Intercept and transform SNIPPET from VSCode style to Yasnippet.
+ORIG-FUN is the original function being advised.
+ARGS are the remaining arguments passed to ORIG-FUN."
   (let ((transformed-body (if (stringp snippet)
                               (snippy--transform-snippet-body snippet)
                             snippet)))
@@ -543,11 +545,11 @@ Used for getting the snippet paths to read and the VScode engine version."
 ;;; Completion At Point (CAPF)
 ;;; ============================================================================
 
-(defun snippy--doc-buffer (cand)
-  "Generate documentation buffer for snippet."
-  (when-let* ((snippet  (get-text-property 0 'snippy-snippet cand))
+(defun snippy--doc-buffer (candidate)
+  "Generate a documentation buffer for the snippet from CANDIDATE."
+  (when-let* ((snippet  (get-text-property 0 'snippy-snippet candidate))
               (body-raw (alist-get 'body snippet))
-              (desc     (get-text-property 0 'snippy-desc cand))
+              (desc     (get-text-property 0 'snippy-desc candidate))
               (mode     major-mode))
     (with-current-buffer (get-buffer-create "*snippy-doc*")
       (let ((inhibit-read-only t)
@@ -585,7 +587,8 @@ Used for getting the snippet paths to read and the VScode engine version."
 ;;;###autoload
 (defun snippy-capf (&optional interactive)
   "Complete with snippy at point.
-If called interactively restrict completion to `snippy-capf'."
+If called interactively restrict completion to `snippy-capf'.
+Optional argument INTERACTIVE specifies whether the call is interactive."
   (interactive (list t))
   (if interactive
       (let ((completion-at-point-functions (list #'snippy-capf)))
