@@ -42,9 +42,6 @@
 ;; When cape-capf-super combines multiple completion functions, it uses the prefix boundaries of the first
 ;; Capf in the list that returns a match. So when merging backends cape be the first
 
-;;; ============================================================================
-;;; Dependencies
-;;; ============================================================================
 ;; Add these to readme:
 ;; Non existent modes
 ;; (license-mode "license")
@@ -56,9 +53,7 @@
 (require 'yasnippet)
 (require 'project)
 
-;;; ============================================================================
-;;; Customization
-;;; ============================================================================
+;;; User customizable variables
 
 (defgroup snippy nil
   "Custom snippet management utilities."
@@ -80,9 +75,7 @@
   :type '(repeat string)
   :group 'snippy)
 
-;;; ============================================================================
 ;;; Internal Variables
-;;; ============================================================================
 
 (defconst snippy--min-vscode-version "1.11.0"
   "The minimum VSCode engine version required.")
@@ -99,9 +92,7 @@
 (defvar-local snippy--computed-candidates nil
   "List of completely propertized completion candidates for the current buffer.")
 
-;;; ============================================================================
 ;;; Setup & Version Checking
-;;; ============================================================================
 
 (defun snippy--get-snippet-dir ()
   "Return snippet directory."
@@ -134,9 +125,7 @@ Used for getting the snippet paths to read and the VScode engine version."
                 (json-parse-buffer :object-type 'alist)))
       (user-error "Snippy: package.json not found.  Run `M-x snippy-install-or-update-snippets' first"))))
 
-;;; ============================================================================
 ;;; Vscode engine check
-;;; ============================================================================
 
 (defun snippy--clean-version (version)
   "Extract a clean semver string from VERSION, removing ^ or ~."
@@ -158,10 +147,7 @@ Used for getting the snippet paths to read and the VScode engine version."
              "VSCode version %s is below requirement %s. Some features may not work."
              current-engine-version snippy--min-vscode-version)))))
 
-;;; ============================================================================
 ;;; Language Remap
-;;; ============================================================================
-
 
 (defvar snippy-emacs-to-vscode-lang-alist
   '((text-mode "plaintext")
@@ -351,9 +337,7 @@ Used for getting the snippet paths to read and the VScode engine version."
   (setq snippy--buffer-language
         (append (snippy--get-vscode-language-name) snippy-global-languages)))
 
-;;; ============================================================================
 ;;; Snippet Reading & Parsing
-;;; ============================================================================
 
 (defun snippy--get-all-paths-for-language (snippet-entries target-lang)
   "Return a list of all paths in SNIPPET-ENTRIES associated with TARGET-LANG."
@@ -416,9 +400,7 @@ Used for getting the snippet paths to read and the VScode engine version."
                    ((listp target)   (member prefix target)))))
               snippy--merged-snippets))
 
-;;; ============================================================================
 ;;; Snippet Expansion
-;;; ============================================================================
 
 (defun snippy--get-variable-value (var-name)
   "Resolves VSCode variables to their Emacs string values based on VAR-NAME."
@@ -520,9 +502,7 @@ Used for getting the snippet paths to read and the VScode engine version."
     (yas-minor-mode t))
   (snippy-expand-snippet (snippy--find-snippet-by-prefix prefix)))
 
-;;; ============================================================================
 ;;; Yasnippet Eglot Fix
-;;; ============================================================================
 
 (defun snippy--fix-lsp-yasnippet (orig-fun snippet &rest args)
   "Intercept and transform SNIPPET from VSCode style to Yasnippet.
@@ -542,9 +522,7 @@ ARGS are the remaining arguments passed to ORIG-FUN."
       (advice-add 'yas-expand-snippet :around #'snippy--fix-lsp-yasnippet)
     (advice-remove 'yas-expand-snippet #'snippy--fix-lsp-yasnippet)))
 
-;;; ============================================================================
 ;;; Completion At Point (CAPF)
-;;; ============================================================================
 
 (defun snippy--doc-buffer (candidate)
   "Generate a documentation buffer for the snippet from CANDIDATE."
@@ -604,9 +582,7 @@ Optional argument INTERACTIVE specifies whether the call is interactive."
                  ,snippy--computed-candidates
                  ,@snippy-capf-properties)))))
 
-;;; ============================================================================
 ;;; Minor Modes
-;;; ============================================================================
 
 ;;;###autoload
 (define-minor-mode snippy-minor-mode
