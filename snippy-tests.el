@@ -2,14 +2,13 @@
 
 ;; To run:
 ;; emacs -batch -f package-initialize -l snippy.el -l snippy-tests.el -f ert-run-tests-batch-and-exit
+;; These tests are AI generated.
 
 (require 'ert)
 (require 'cl-lib)
 (require 'snippy)
 
-;;; ============================================================================
 ;;; Mock Data & Fixtures
-;;; ============================================================================
 
 (defvar snippy-test--mock-package-json
   '((engines . ((vscode . "^1.20.0")))
@@ -25,12 +24,9 @@
                           (body . "const $1 = () => { $2 }"))))
   "Mock parsed snippets file data.")
 
-;;; ============================================================================
 ;;; Test Cases
-;;; ============================================================================
 
 ;; 1. Setup & Directory Methods
-;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-get-snippet-dir ()
   "Ensure `snippy--get-snippet-dir' builds the path correctly."
   (let ((snippy-install-dir "/tmp/emacs-snippets")
@@ -39,7 +35,6 @@
 
 
 ;; 2. Version and Engine Checking
-;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-clean-version ()
   "Verify `snippy--clean-version' extracts correct semantic version strings."
   (should (string= (snippy--clean-version "^1.53.0") "1.53.0"))
@@ -60,7 +55,6 @@
 
 
 ;; 3. Language Mapping Checks
-;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-get-vscode-language-name ()
   "Verify correct resolution of Emacs modes to VSCode languages."
   (with-temp-buffer
@@ -83,7 +77,6 @@
 
 
 ;; 4. Paths & Path Selection Logic
-;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-get-all-paths-for-language ()
   "Test nested structures for arrays vs single strings are resolved accurately."
   (let ((data (alist-get 'snippets (alist-get 'contributes snippy-test--mock-package-json))))
@@ -96,7 +89,6 @@
 
 
 ;; 5. Parsing & Finding Snippets
-;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-find-snippet-by-prefix ()
   "Verify prefixes can match single strings, arrays, or lists inside snippet indexes."
   (let ((snippy--merged-snippets snippy-test--mock-js-snippets))
@@ -108,7 +100,6 @@
 
 
 ;; 6. Syntactic Transformation (VSCode Syntax -> Yasnippet)
-;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-transform-snippet-variables ()
   "Test variable extraction and standard date expansions work seamlessly."
   ;; File Base expansion
@@ -131,7 +122,6 @@
 
 
 ;; 7. Completion At Point (CAPF) Validation
-;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-capf-candidates ()
   "Verify candidate engine extracts prefixes, annotations, and injects properties."
   (let ((snippy--merged-snippets snippy-test--mock-js-snippets)
@@ -144,7 +134,6 @@
 
 
 ;; 8. Minor Mode Lifecycle
-;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-minor-mode-toggle ()
   "Assert activation triggers updates and teardown clears cached buffer context."
   (with-temp-buffer
@@ -169,7 +158,6 @@
       (should-not snippy--merged-snippets))))
 
 ;; 9. Deep Variable Resolution (snippy--get-variable-value)
-;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-get-variable-value-fallback-and-bounds ()
   "Verify variable resolution when no file is visiting, and check index positions."
   (with-temp-buffer
@@ -197,7 +185,6 @@
 
 
 ;; 10. Advanced Syntactic Transformations (Edge Cases)
-;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-transform-mixed-syntax ()
   "Verify transformations on bodies containing mixed variables, placeholders, and choices."
   (let ((input "fn ${1:name}(${2|a,b|}) {\n\t$TM_FILENAME\n\treturn $1;\n}")
@@ -215,7 +202,6 @@
 
 
 ;; 11. CAPF Metadata Extraction & Annotations
-;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-capf-properties-and-annotations ()
   "Test annotation functions and structural properties assigned to candidates."
   (let* ((cand "clg")
@@ -232,7 +218,6 @@
 
 
 ;; 12. Robustness Against Malformed/Empty Config structures
-;; ----------------------------------------------------------------------------
 (ert-deftest snippy-test-empty-language-path-tolerance ()
   "Verify path discovery does not crash when package data configurations are empty."
   (let ((empty-data []))
