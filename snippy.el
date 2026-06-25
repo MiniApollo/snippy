@@ -445,7 +445,7 @@ Used for getting the snippet paths to read and the VScode engine version."
       ;; Fallback
       (_ nil))))
 
-(defun snippy--transform-snippet-body (body-str)
+(defun snippy-transform-snippet-body (body-str)
   "Transform BODY-STR from VSCode snippet syntax to Yasnippet."
   (let ((result body-str))
     ;; 1. Handle Variables ($VAR, ${VAR}, or ${VAR:default})
@@ -491,7 +491,7 @@ Used for getting the snippet paths to read and the VScode engine version."
          (body-str (cond ((vectorp body-raw) (mapconcat #'identity body-raw "\n"))
                          ((stringp body-raw) body-raw)
                          (t ""))))
-    (yas-expand-snippet (snippy--transform-snippet-body body-str))))
+    (yas-expand-snippet (snippy-transform-snippet-body body-str))))
 
 (defun snippy-expand (prefix)
   "Expand snippet by PREFIX."
@@ -509,7 +509,7 @@ Used for getting the snippet paths to read and the VScode engine version."
 ORIG-FUN is the original function being advised.
 ARGS are the remaining arguments passed to ORIG-FUN."
   (let ((transformed-body (if (stringp snippet)
-                              (snippy--transform-snippet-body snippet)
+                              (snippy-transform-snippet-body snippet)
                             snippet)))
     (apply orig-fun transformed-body args)))
 
