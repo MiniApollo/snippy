@@ -1,4 +1,4 @@
-;;; snippy.el --- Vscode snippets support for Emacs  -*- lexical-binding:t -*-
+;;; snippy.el --- Vscode snippet support with Yasnippet  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2026 Mark Surmann
 
