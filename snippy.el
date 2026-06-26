@@ -149,7 +149,7 @@ Used for getting the snippet paths to read and the VScode engine version."
 
 ;;; Language Remap
 
-(defvar snippy-emacs-to-vscode-lang-alist
+(defcustom snippy-emacs-to-vscode-lang-alist
   '((text-mode "plaintext")
     (markdown-mode "markdown")
     (markdown-ts-mode "markdown")
@@ -326,7 +326,9 @@ Used for getting the snippet paths to read and the VScode engine version."
     (mint-mode "mint")
     (norg-mode "norg")
     (nushell-mode "nu"))
-  "Alist mapping Emacs major modes to a list of VS Code language identifiers.")
+  "Alist mapping Emacs major modes to a list of VS Code language identifiers."
+  :type '(alist :key-type symbol :value-type (repeat string))
+  :group 'snippy)
 
 (defun snippy--get-vscode-language-name ()
   "Return a list of all VSCode language strings for the current major mode."
