@@ -12,7 +12,6 @@ https://github.com/user-attachments/assets/659158b0-562a-4d51-8393-70f20d974226
 - [Features](#Features)
 - [Installation](#Installation)
 - [Configuration](#Configuration)
-- [How it was made](#how-developed)
 
 <a id="Introduction"></a>
 # Introduction
