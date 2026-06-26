@@ -127,12 +127,13 @@ User Variables:
 - snippy-global-languages
 - snippy-emacs-to-vscode-lang-alist
 
-Dev Variables:
+Internal Variables:
 - snippy--min-vscode-version
-- snippy-package-json-content
+- snippy--package-json-content
 - snippy--buffer-language
 - snippy--merged-snippets
-- snippy-capf-properties
+- snippy--computed-candidates
+- snippy--capf-properties
 
 User Functions:
 - snippy-install-or-update-snippets
@@ -143,21 +144,23 @@ User Functions:
 - snippy-minor-mode
 - global-snippy-minor-mode
 
-Functions:
+Public functions:
+- snippy-transform-snippet-body
+- snippy-expand-snippet
+
+Internal functions:
 - snippy--get-snippet-dir
-- snippy-get-package-data
+- snippy--get-package-data
 - snippy--clean-version
-- snippy-check-engine-version
+- snippy--check-engine-version
 - snippy--get-vscode-language-name
 - snippy--update-buffer-language
 - snippy--get-all-paths-for-language
 - snippy--get-all-snippets-paths
 - snippy--get-current-language-path
+- snippy--compute-candidates
 - snippy--find-snippet-by-prefix
 - snippy--get-variable-value
-- snippy--transform-snippet-body
-- snippy-expand-snippet
 - snippy--fix-lsp-yasnippet
 - snippy--doc-buffer
-- snippy-capf-candidates
 - snippy--turn-on
