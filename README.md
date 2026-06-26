@@ -12,7 +12,7 @@ https://github.com/user-attachments/assets/659158b0-562a-4d51-8393-70f20d974226
 - [Features](#Features)
 - [Installation](#Installation)
 - [Configuration](#Configuration)
-- [How it was made](how-developed)
+- [How it was made](#how-developed)
 
 <a id="Introduction"></a>
 # Introduction
@@ -70,7 +70,7 @@ Enable: snippy-fix-lsp-snippet-mode
             :rev :newest) ; To get the latest updates
   :hook (after-init . global-snippy-minor-mode)
   :custom
-  (snippy-global-languages '("global")) ; Recomended
+  (snippy-global-languages '("global")) ; Recommended
   ;; Optional
   ;; (snippy-install-dir (expand-file-name <Your location>))
   ;; Use different snippet collections
@@ -87,9 +87,9 @@ Prefix characters like !, @ don't work with yasnippet out of the box.
 With Snippy it does work, but if you are merging completion backends
 make sure <b>snippy is the first capf</b> that dictates boundaries for the completion.
 
-Other completion backends does not include special characters in the prefix.
+Other completion backends do not include special characters in the prefix.
 
-If you want to use specials characters in Yasnippet-snippets use this to fix it:
+If you want to use special characters in Yasnippet-snippets use this to fix it:
 With this you can use snippets like !cdr which is defined in yasnippet-snippets package.
 ```elisp
 ;; This is not needed for Snippy.el
@@ -109,7 +109,7 @@ You can use any language you like.
 ```elisp
 ;; Global Variable names
   :custom
-  (snippy-global-languages '("global" "licence"))
+  (snippy-global-languages '("global" "license"))
 ```
 
 - snippy-emacs-to-vscode-lang-alist: Alist mapping for Emacs major modes to VSCode language names.
@@ -119,7 +119,7 @@ You can see all the languages inside the package.json file in the Friendly Snipp
 There are some language snippets that are optional. To use them add it to the list.
 You can also add more remaps if any language is missing from the list (or you can just make a pull request).
 When adding language remaps the first is the only one that is used in the list.
-You also need to include all vscode snippet names not just the new ones name.
+You also need to include all vscode snippet names not just the new one's name.
 
 Optional remap names:
 - (c++-mode . "unreal")
