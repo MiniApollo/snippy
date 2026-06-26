@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2026 Mark Surmann
 
-;; Author: Mark Surmann <overmilord62@gmail.com>
+;; Author: Mark Surmann <surmannmark@gmail.com>
 ;; Assisted-by: Gemini:3.5 Flash
 ;; Created: 28 Jan 2026
 
