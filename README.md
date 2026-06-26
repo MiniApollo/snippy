@@ -83,12 +83,13 @@ Enable: snippy-fix-lsp-snippet-mode
 
 ## Using special characters for snippets like !,@
 Prefix characters like !, @ don't work with yasnippet out of the box.
+
 With Snippy it does work, but if you are merging completion backends
-make sure *snippy is the first capf* that dictates boundaries for the completion.
+make sure <b>snippy is the first capf</b> that dictates boundaries for the completion.
 
 Other completion backends does not include special characters in the prefix.
 
-If you want to use specials characters in Yasnippet-snippets use this to fix this:
+If you want to use specials characters in Yasnippet-snippets use this to fix it:
 With this you can use snippets like !cdr which is defined in yasnippet-snippets package.
 ```elisp
 ;; This is not needed for Snippy.el
