@@ -107,8 +107,7 @@ Now you can use snippets like !cdr which is defined in yasnippet-snippets packag
 You can use any language you like.
 ```elisp
 ;; Global Variable names
-  :custom
-  (snippy-global-languages '("global" "license"))
+(setq snippy-global-languages '("global" "license"))
 ```
 
 - snippy-emacs-to-vscode-lang-alist: Alist mapping for Emacs major modes to VSCode language names.
