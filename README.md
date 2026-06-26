@@ -18,8 +18,11 @@ https://github.com/user-attachments/assets/659158b0-562a-4d51-8393-70f20d974226
 # Introduction
 
 Snippy is a snippet tranlation and completion engine that uses yasnippet under the hood.
+
 This package translates LSP/VSCode-style snippets into YASnippet format allowing you to use all modern, external snippets seamlessly.
+
 Since YASnippet doesn't fully support the entire LSP specification.
+
 It can optionally fix LSP snippets that Eglot retrieves from servers (e.g java), working alongside YASnippet so you can use both simultaneously.
 
 Default Snippets collection is [Friendly Snippets](https://github.com/rafamadriz/friendly-snippets "Default Snippets collection")
@@ -85,8 +88,8 @@ Enable: snippy-fix-lsp-snippet-mode
   - Directory Name (Cloned repo dir name)
 - snippy-global-languages: List of languages to enable globally across all major modes.
 - snippy-emacs-to-vscode-lang-alist: Alist mapping for Emacs major modes to VSCode language names.
-You can see all the languages inside the package.json file in the Friendly Snippets [repo](https://github.com/rafamadriz/friendly-snippets "Git Repository")
 
+You can see all the languages inside the package.json file in the Friendly Snippets [repo](https://github.com/rafamadriz/friendly-snippets "Git Repository")
 
 There are some language snippets that are optional. To use them add it to the list.
 You can also add more remaps if any language is missing from the list (or you can just make a pull request).
