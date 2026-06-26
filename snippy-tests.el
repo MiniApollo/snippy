@@ -31,7 +31,7 @@
 
 ;; To run:
 ;; emacs -batch -f package-initialize -l snippy.el -l snippy-tests.el -f ert-run-tests-batch-and-exit
-;; Yasnippets needs to be installed inside your Emacs config directory for this command.
+;; YAsnippets needs to be installed inside your Emacs config directory for this command.
 
 ;;; Code:
 
@@ -81,26 +81,29 @@
     (cl-letf (((symbol-function 'lwarn)
                (lambda (type _level _message &rest _args)
                  (when (eq type 'snippy) (setq warning-triggered t)))))
-      (snippy-check-engine-version)
+      (snippy--check-engine-version)
       (should warning-triggered))))
 
 
 ;; 3. Language Mapping Checks
 (ert-deftest snippy-tests-get-vscode-language-name ()
-  "Verify correct resolution of Emacs modes to VSCode languages."
-  (with-temp-buffer
-    (js-mode)
-    (should (equal (snippy--get-vscode-language-name) '("javascript" "jsdoc"))))
-  (with-temp-buffer
-    (python-ts-mode)
-    (should (equal (snippy--get-vscode-language-name) '("python" "pydoc"))))
-  (with-temp-buffer
-    (delay-mode-hooks (special-mode))
-    (should-not (snippy--get-vscode-language-name))))
+  "Verify correct resolution of Emacs modes to VSCode languages using `snippy-emacs-to-vscode-lang-alist'."
+  (let ((snippy-emacs-to-vscode-lang-alist '((js-mode "javascript" "jsdoc")
+                                             (python-ts-mode "python" "pydoc"))))
+    (with-temp-buffer
+      (js-mode)
+      (should (equal (snippy--get-vscode-language-name) '("javascript" "jsdoc"))))
+    (with-temp-buffer
+      (python-ts-mode)
+      (should (equal (snippy--get-vscode-language-name) '("python" "pydoc"))))
+    (with-temp-buffer
+      (delay-mode-hooks (special-mode))
+      (should-not (snippy--get-vscode-language-name)))))
 
 (ert-deftest snippy-tests-update-buffer-language ()
   "Ensure buffer language updates to target plus globals."
-  (let ((snippy-global-languages '("global1" "global2")))
+  (let ((snippy-emacs-to-vscode-lang-alist '((js-mode "javascript" "jsdoc")))
+        (snippy-global-languages '("global1" "global2")))
     (with-temp-buffer
       (js-mode)
       (snippy--update-buffer-language)
@@ -135,21 +138,21 @@
   "Test variable extraction and standard date expansions work seamlessly."
   ;; File Base expansion
   (let ((buffer-file-name "/home/user/project/src/main.js"))
-    (should (string= (snippy--transform-snippet-body "$TM_FILENAME_BASE") "main")))
+    (should (string= (snippy-transform-snippet-body "$TM_FILENAME_BASE") "main")))
   ;; Simple year test
-  (should (string-match-p "^[0-9]\\{4\\}$" (snippy--transform-snippet-body "$CURRENT_YEAR"))))
+  (should (string-match-p "^[0-9]\\{4\\}$" (snippy-transform-snippet-body "$CURRENT_YEAR"))))
 
 (ert-deftest snippy-tests-transform-snippet-choices ()
   "Ensure VSCode style multi-choice syntax gets converted into `yas-choose-value' logic."
   (let ((input "${1|one,two,three|}")
         (expected "${1:$$(yas-choose-value '(\"one\" \"two\" \"three\"))}"))
-    (should (string= (snippy--transform-snippet-body input) expected))))
+    (should (string= (snippy-transform-snippet-body input) expected))))
 
 (ert-deftest snippy-tests-transform-snippet-placeholders ()
   "Check that nested and mirrored identifiers optimize/deduplicate cleanly."
   (let ((input "${1:foo} bar $1")
         (expected "${1:foo} bar $1"))
-    (should (string= (snippy--transform-snippet-body input) expected))))
+    (should (string= (snippy-transform-snippet-body input) expected))))
 
 
 ;; 7. Completion At Point (CAPF) Validation
@@ -170,23 +173,24 @@
   (with-temp-buffer
     (js-mode)
     ;; Mock initialization configurations to prevent disk reads
-    (setq snippy-package-json-content snippy-tests--mock-package-json)
-    (cl-letf (((symbol-function 'snippy-refresh-snippets)
-               (lambda ()
-                 (snippy--update-buffer-language)
-                 (setq snippy--merged-snippets snippy-tests--mock-js-snippets))))
+    (setq snippy--package-json-content snippy-tests--mock-package-json)
+    (let ((snippy-emacs-to-vscode-lang-alist '((js-mode "javascript" "jsdoc"))))
+      (cl-letf (((symbol-function 'snippy-refresh-snippets)
+                 (lambda ()
+                   (snippy--update-buffer-language)
+                   (setq snippy--merged-snippets snippy-tests--mock-js-snippets))))
 
-      ;; Turn Mode On
-      (snippy-minor-mode 1)
-      (should snippy-minor-mode)
-      (should (equal snippy--buffer-language '("javascript" "jsdoc")))
-      (should snippy--merged-snippets)
+        ;; Turn Mode On
+        (snippy-minor-mode 1)
+        (should snippy-minor-mode)
+        (should (equal snippy--buffer-language '("javascript" "jsdoc")))
+        (should snippy--merged-snippets)
 
-      ;; Turn Mode Off
-      (snippy-minor-mode -1)
-      (should-not snippy-minor-mode)
-      (should-not snippy--buffer-language)
-      (should-not snippy--merged-snippets))))
+        ;; Turn Mode Off
+        (snippy-minor-mode -1)
+        (should-not snippy-minor-mode)
+        (should-not snippy--buffer-language)
+        (should-not snippy--merged-snippets)))))
 
 ;; 9. Deep Variable Resolution (snippy--get-variable-value)
 (ert-deftest snippy-tests-get-variable-value-fallback-and-bounds ()
@@ -223,13 +227,13 @@
         (expected "fn ${1:name}(${2:$$(yas-choose-value '(\"a\" \"b\"))}) {\n\tUntitled\n\treturn $1;\n}"))
     (with-temp-buffer
       (setq buffer-file-name nil)
-      (should (string= (snippy--transform-snippet-body input) expected)))))
+      (should (string= (snippy-transform-snippet-body input) expected)))))
 
 (ert-deftest snippy-tests-transform-placeholder-deduplication-complex ()
   "Ensure multiple instances of identical placeholder IDs convert subsequent hits to mirrors."
   (let ((input "${1:foo} -> ${1:bar} -> $1")
         (expected "${1:foo} -> $1 -> $1"))
-    (should (string= (snippy--transform-snippet-body input) expected))))
+    (should (string= (snippy-transform-snippet-body input) expected))))
 
 
 ;; 11. CAPF Metadata Extraction & Annotations
@@ -240,11 +244,11 @@
                                        'snippy-name "Console Log"
                                        'snippy-desc "Prints to stdout")))
     ;; Test annotation property block logic extraction
-    (let ((annot-fun (plist-get snippy-capf-properties :annotation-function)))
+    (let ((annot-fun (plist-get snippy--capf-properties :annotation-function)))
       (should (string= (funcall annot-fun propertized-cand) "  Console Log")))
 
     ;; Test visual classification kind metadata
-    (let ((kind-fun (plist-get snippy-capf-properties :company-kind)))
+    (let ((kind-fun (plist-get snippy--capf-properties :company-kind)))
       (should (eq (funcall kind-fun propertized-cand) 'snippet)))))
 
 
@@ -257,14 +261,13 @@
 
 (ert-deftest snippy-tests-unmapped-mode-fallback ()
   "Ensure unmapped major modes fall back gracefully without breaking buffer states."
-  (with-temp-buffer
-    ;; Use an arbitrary mode that is truly missing from the mapping alist
-    (delay-mode-hooks (special-mode))
-    (snippy--update-buffer-language)
-    ;; It should fall back to nil (plus any global languages if defined)
-    (if snippy-global-languages
-        (should (equal snippy--buffer-language snippy-global-languages))
-      (should-not snippy--buffer-language))))
+  (let ((snippy-emacs-to-vscode-lang-alist nil)) ; Explicitly empty to guarantee fallback
+    (with-temp-buffer
+      (delay-mode-hooks (special-mode))
+      (snippy--update-buffer-language)
+      (if snippy-global-languages
+          (should (equal snippy--buffer-language snippy-global-languages))
+        (should-not snippy--buffer-language)))))
 
 (provide 'snippy-tests)
 ;;; snippy-tests.el ends here
