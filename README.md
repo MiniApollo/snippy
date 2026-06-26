@@ -17,15 +17,15 @@ https://github.com/user-attachments/assets/659158b0-562a-4d51-8393-70f20d974226
 <a id="Introduction"></a>
 # Introduction
 
-Snippy is a snippet tranlation and completion engine that uses yasnippet under the hood.
+Snippy is a snippet translation and completion engine that uses YASnippet under the hood.
 
-This package translates LSP/VSCode-style snippets into YASnippet format allowing you to use all modern, external snippets seamlessly.
+This package translates LSP/VSCode-style snippets into YASnippet format, allowing you to use all modern, external snippets seamlessly.
 
 Since YASnippet doesn't fully support the entire LSP specification.
 
-It can optionally fix LSP snippets that Eglot retrieves from servers (e.g java), working alongside YASnippet so you can use both simultaneously.
+It can optionally fix LSP snippets that Eglot retrieves from servers (e.g., Java), working alongside YASnippet so you can use both simultaneously.
 
-Default Snippets collection is [Friendly Snippets](https://github.com/rafamadriz/friendly-snippets "Default Snippets collection")
+The *Default Snippets collection* is [Friendly Snippets](https://github.com/rafamadriz/friendly-snippets "Default Snippets collection").
 
 <a id="Features"></a>
 # Features
@@ -65,18 +65,34 @@ Enable: snippy-fix-lsp-snippet-mode
 # Installation
 ```elisp
 (use-package snippy
-  :vc (:url "https://github.com/MiniApollo/snippy.git")
+  :vc (:url "https://github.com/MiniApollo/snippy.git"
+            :branch "main"
+            :rev :newest) ; To get the latest updates
   :hook (after-init . global-snippy-minor-mode)
   :custom
-  (snippy-global-languages '("global")) ;; Recomended
+  (snippy-global-languages '("global")) ; Recomended
   ;; Optional
   ;; (snippy-install-dir (expand-file-name <Your location>))
   ;; Use different snippet collections
   ;; (snippy-source '("Your git repo" . "my-snippets-dir"))
   :config
-  (snippy-install-or-update-snippets) ;; Autoupdate git repo
-  ;; (snippy-fix-lsp-snippet-mode) ;; Fixes lsp server snippets (e.g java lsp)
-  (add-hook 'completion-at-point-functions #'snippy-capf)) ;; Or merge them with Yasnippet or eglot capf
+  (snippy-install-or-update-snippets) ; Autoupdate git repo
+  ;; (snippy-fix-lsp-snippet-mode) ; Fixes lsp server snippets (e.g java lsp)
+  (add-hook 'completion-at-point-functions #'snippy-capf)) ; Or merge them with Yasnippet or eglot capf
+```
+
+## Using special characters for snippets like !,@
+Prefix characters like !, @ don't work with yasnippet out of the box.
+With Snippy it does work, but if you are merging completion backends
+make sure *snippy is the first capf* that dictates boundaries for the completion.
+
+Other completion backends does not include special characters in the prefix.
+
+If you want to use specials characters in Yasnippet-snippets use this to fix this:
+With this you can use snippets like !cdr which is defined in yasnippet-snippets package.
+```elisp
+;; This is not needed for Snippy.el
+(setq yas-key-syntaxes '("w_" "w_." "^ ")) ; Fixes Yasnippet-snippets special character usage.
 ```
 
 <a id="Configuration"></a>
@@ -87,28 +103,49 @@ Enable: snippy-fix-lsp-snippet-mode
   - Repository URL
   - Directory Name (Cloned repo dir name)
 - snippy-global-languages: List of languages to enable globally across all major modes.
+
+You can use any language you like.
+```elisp
+;; Global Variable names
+  :custom
+  (snippy-global-languages '("global" "licence"))
+```
+
 - snippy-emacs-to-vscode-lang-alist: Alist mapping for Emacs major modes to VSCode language names.
 
-You can see all the languages inside the package.json file in the Friendly Snippets [repo](https://github.com/rafamadriz/friendly-snippets "Git Repository")
+You can see all the languages inside the package.json file in the Friendly Snippets [repository](https://github.com/rafamadriz/friendly-snippets "Git Repository").
 
 There are some language snippets that are optional. To use them add it to the list.
 You can also add more remaps if any language is missing from the list (or you can just make a pull request).
+When adding language remaps the first is the only one that is used in the list.
+You also need to include all vscode snippet names not just the new ones name.
+
+Optional remap names:
+- (c++-mode . "unreal")
+- (c++-ts-mode . "unreal")
+- (csharp-mode . "unity")
+- (csharp-ts-mode . "unity")
+- (html-mode . "djangohtml")
+- (html-mode . "htmldjango")
+- (web-mode . "angular")
+- (web-mode . "twig")
+- (python-mode . "django")
+- (python-mode . "django-rest")
+- (python-ts-mode . "django")
+- (python-ts-mode . "django-rest")
+
+Modes that don't have a specific major-mode:
+- blade
+- eelixir
+- rmd
+
 ```elisp
 ;; Choose the remaps you want to use
-(setq snippy-emacs-to-vscode-lang-alist
-      (append snippy-emacs-to-vscode-lang-alist
-              '((c++-mode . "unreal")
-                (c++-ts-mode . "unreal")
-                (csharp-mode . "unity")
-                (csharp-ts-mode . "unity")
-                (html-mode . "djangohtml")
-                (html-mode . "htmldjango")
-                (web-mode . "angular")
-                (web-mode . "twig")
-                (python-mode . "django")
-                (python-mode . "django-rest")
-                (python-ts-mode . "django")
-                (python-ts-mode . "django-rest"))))
+(add-to-list 'snippy-emacs-to-vscode-lang-alist '(super-cool-mode "coolang" "cool-doc")) ;  Example new dummy-mode
+
+;; Add to an existing mode (You need to include all vscode snippet names not just the new one)
+(add-to-list 'snippy-emacs-to-vscode-lang-alist '(c++-mode "cpp" "cppdoc" "unreal"))
+(add-to-list 'snippy-emacs-to-vscode-lang-alist '(c++-ts-mode "cpp" "cppdoc"))
 ```
 
 ## Functions
