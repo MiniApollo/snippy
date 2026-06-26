@@ -110,13 +110,15 @@ You can use any language you like.
 (setq snippy-global-languages '("global" "license"))
 ```
 
-- snippy-emacs-to-vscode-lang-alist: Alist mapping for Emacs major modes to VSCode language names.
+### snippy-emacs-to-vscode-lang-alist:
+Alist mapping for Emacs major modes to VSCode language names.
 
 You can see all the languages inside the package.json file in the Friendly Snippets [repository](https://github.com/rafamadriz/friendly-snippets "Git Repository").
-
 There are some language snippets that are optional. To use them add it to the list.
+
 You can also add more remaps if any language is missing from the list (or you can just make a pull request).
 When adding language remaps the first is the only one that is used in the list.
+
 You also need to include all vscode snippet names not just the new one's name.
 
 Optional remap names:
@@ -144,7 +146,7 @@ Modes that don't have a specific major-mode:
 
 ;; Add to an existing mode (You need to include all vscode snippet names not just the new one)
 (add-to-list 'snippy-emacs-to-vscode-lang-alist '(c++-mode "cpp" "cppdoc" "unreal"))
-(add-to-list 'snippy-emacs-to-vscode-lang-alist '(c++-ts-mode "cpp" "cppdoc"))
+(add-to-list 'snippy-emacs-to-vscode-lang-alist '(c++-ts-mode "cpp" "cppdoc" "unreal"))
 ```
 
 ## Functions
@@ -158,4 +160,3 @@ Modes that don't have a specific major-mode:
 - snippy-minor-mode: Toggle snippy in the current buffer.
 - global-snippy-minor-mode: Toggle snippy in all buffers.
 - snippy-fix-lsp-snippet-mode: Toggle LSP server snippet fix globally.
-
