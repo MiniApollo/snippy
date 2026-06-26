@@ -89,11 +89,11 @@ make sure <b>snippy is the first capf</b> that dictates boundaries for the compl
 Other completion backends do not include special characters in the prefix.
 
 If you want to use special characters in Yasnippet-snippets use this to fix it:
-With this you can use snippets like !cdr which is defined in yasnippet-snippets package.
 ```elisp
 ;; This is not needed for Snippy.el
 (setq yas-key-syntaxes '("w_" "w_." "^ ")) ; Fixes Yasnippet-snippets special character usage.
 ```
+Now you can use snippets like !cdr which is defined in yasnippet-snippets package.
 
 <a id="Configuration"></a>
 # Configuration
