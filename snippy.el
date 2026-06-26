@@ -28,26 +28,16 @@
 
 ;;; Commentary:
 
-;; VSCode snippets support for Emacs with Yasnippet
+;; Snippy is a snippet translation and completion engine that uses
+;; YASnippet under the hood.
+
+;; This package translates LSP/VSCode-style snippets into YASnippet
+;; format, allowing you to use all modern, external snippets seamlessly.
+;; It can optionally fix LSP snippets that Eglot retrieves from servers
+;; (e.g., Java), working alongside YASnippet so you can use both
+;; simultaneously.
 
 ;;; Code:
-;; TODO:
-;; Fix special character snippets like !,@ etc.
-;; Characters like !, @ do not work either with yasnippet. The default behaviour
-;; is that they are not treated part of the snippet.
-;; It can be fixed with the following code for yasnippet.
-;; (setq yas-key-syntaxes '("w_" "w_." "^ "))
-;; More experimentation needed for snippy.
-;; The problem was with my config.
-;; When cape-capf-super combines multiple completion functions, it uses the prefix boundaries of the first
-;; Capf in the list that returns a match. So when merging backends cape be the first
-
-;; Add these to readme:
-;; Non existent modes
-;; (license-mode "license")
-;; (blade-mode "blade")
-;; (eelixir-mode "eelixir")
-;; (rmarkdown-mode "rmd")
 
 (require 'cl-lib)
 (require 'yasnippet)
