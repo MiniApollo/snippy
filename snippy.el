@@ -73,6 +73,10 @@
 (defvar snippy--package-json-content nil
   "Package json file content parsed as an alist.")
 
+(defvar snippy--file-cache (make-hash-table :test 'equal)
+  "Global cache storing parsed snippet files.
+Keys are file paths, values are parsed alists.")
+
 (defvar-local snippy--buffer-language nil
   "The language currently used by snippy in the local buffer.")
 
@@ -97,11 +101,14 @@ If `snippy-install-dir' is nil, it defaults to `user-emacs-directory`."
     (if (file-directory-p dest)
         (let ((default-directory dest))
           (message "Pulling updates in %s..." dest)
-          (start-process "Snippy-git-pull" nil "git" "pull"))
+          (start-process "Snippy-git-pull" nil "git" "pull")
+          (clrhash snippy--file-cache))
       (message "Cloning %s to %s..." (car snippy-source) dest)
       (with-temp-buffer
         (if (= 0 (call-process "git" nil t nil "clone" (car snippy-source) dest))
-            (message "Finished cloning to %s" dest)
+            (progn
+              (message "Finished cloning to %s" dest)
+              (clrhash snippy--file-cache))
           (message "Git clone failed: %s" (string-trim (buffer-string))))))))
 
 (defun snippy--get-package-data ()
@@ -367,17 +374,24 @@ Used for getting the snippet paths to read and the VScode engine version."
     (setq snippy--computed-candidates (delete-dups raw-candidates))))
 
 (defun snippy-refresh-snippets ()
-  "Force an update on the snippets for the current buffer."
+  "Update the snippets for the current buffer.
+If called interactively, it clears the cache to force a fresh disk read."
   (interactive)
+  (when (called-interactively-p 'any)
+    (clrhash snippy--file-cache)
+    (message "Snippy: Cache cleared."))
   (snippy--update-buffer-language)
   (setq snippy--merged-snippets
         (cl-loop with dir = (snippy--get-snippet-dir)
                  for suffix in (snippy--get-current-language-path)
                  for full-path = (expand-file-name suffix dir)
                  if (file-exists-p full-path)
-                 append (with-temp-buffer
-                          (insert-file-contents full-path)
-                          (json-parse-buffer :object-type 'alist))
+                 append (or (gethash full-path snippy--file-cache)
+                            (let ((parsed-data (with-temp-buffer
+                                                 (insert-file-contents full-path)
+                                                 (json-parse-buffer :object-type 'alist))))
+                              (puthash full-path parsed-data snippy--file-cache)
+                              parsed-data))
                  else
                  do (message "Skipping: %s (not found)" full-path)))
   (snippy--compute-candidates))
