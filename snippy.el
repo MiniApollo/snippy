@@ -157,6 +157,7 @@ Used for getting the snippet paths to read and the VScode engine version."
     (html-mode "html")
     (html-ts-mode "html")
     (mhtml-mode "html")
+    (mhtml-ts-mode "html")
     (web-mode "html")
     (bibtex-mode "bib" "bibtex")
 
